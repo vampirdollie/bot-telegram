@@ -2,7 +2,10 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 import datetime, json, os, random
 
-TOKEN = "8613485366:AAHD2VcKLsgWqV2UPqh7BSwxdQ-PlEwtnZ0"
+import os
+
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+
 ARCHIVO = "puntos.json"
 
 SUPERADMINS = ["7943521525"]  # solo tú
