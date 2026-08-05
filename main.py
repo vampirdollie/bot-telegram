@@ -26,6 +26,9 @@ BLOQUEADOS = [
     "6813476131"  # cat
 ]
 
+def esta_bloqueado(user_id):
+    return str(user_id) in BLOQUEADOS
+
 # --- Conexión a Postgres ---
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
@@ -259,9 +262,17 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # si se pasa un ID numérico directamente
             target_id = objetivo
             username = f"ID:{objetivo}"
-        # Actualizar puntos en la fila del user_id
-        cur.execute("UPDATE puntos SET score = score + %s, username = %s WHERE user_id = %s",
-                    (cantidad, username, target_id))
+
+        if esta_bloqueado(target_id):
+            await update.message.reply_text(
+                "no puedes entregar kooins a este usuario."
+            )
+            return
+
+        cur.execute(
+            "UPDATE puntos SET score = score + %s, username = %s WHERE user_id = %s",
+            (cantidad, username, target_id)
+        )
         conn.commit()
         # Consultar acumulado correcto
         cur.execute("SELECT score FROM puntos WHERE user_id=%s", (target_id,))
