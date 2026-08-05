@@ -180,6 +180,7 @@ async def ranking(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in SUPERADMINS:
         await update.message.reply_text("el ranking es privado, solo admins pueden verlo. ¡qué nervios!")
         return
+    # Consultar todos los usuarios ordenados por score
     cur.execute("SELECT username, score FROM puntos ORDER BY score DESC")
     rows = cur.fetchall()
     if not rows:
@@ -187,7 +188,12 @@ async def ranking(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     mensaje = "๑ ¡hola, admin!\nranking de participantes:\n\n"
     for i, (jugador, score) in enumerate(rows, start=1):
-        icono = "🐰" if i == 1 else ("⭐" if i <= 3 else f"{i}.")
+        if i == 1:
+            icono = "🐰"
+        elif i <= 3:
+            icono = "⭐"
+        else:
+            icono = f"{i}."
         mensaje += f"{icono} {jugador}: {score} kooins\n"
     await update.message.reply_text(mensaje)
 
@@ -240,11 +246,21 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         cantidad = int(context.args[0])
         objetivo = context.args[1]
-        target_id = objetivo
+        # Buscar el user_id real en la tabla usando el username
         if objetivo.startswith("@"):
-            username = objetivo
+            cur.execute("SELECT user_id FROM puntos WHERE username=%s", (objetivo,))
+            row = cur.fetchone()
+            if row:
+                target_id = row[0]  # usamos el user_id real
+                username = objetivo
+            else:
+                await update.message.reply_text("ese usuario aún no ha jugado, no puedo darle kooins. ૮◞ ◟ ა")
+                return
         else:
+            # si se pasa un ID numérico directamente
+            target_id = objetivo
             username = f"ID:{objetivo}"
+        # Actualizar puntos
         cur.execute("""
         INSERT INTO puntos (user_id, username, score)
         VALUES (%s, %s, %s)
@@ -253,6 +269,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             username = EXCLUDED.username
         """, (target_id, username, cantidad))
         conn.commit()
+        # Consultar acumulado correcto
         cur.execute("SELECT score FROM puntos WHERE user_id=%s", (target_id,))
         row = cur.fetchone()
         acumulado = row[0] if row else cantidad
