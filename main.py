@@ -32,9 +32,9 @@ cur = conn.cursor()
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS puntos (
-    user_id TEXT PRIMARY KEY,
+    user_id BIGINT PRIMARY KEY,
     username TEXT,
-    score INTEGER
+    score INTEGER DEFAULT 0
 )
 """)
 conn.commit()
