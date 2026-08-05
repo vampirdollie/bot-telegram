@@ -333,34 +333,32 @@ for target_id, username in usuarios:
         weights=[50, 35, 15]
     )[0]
 
-        cur.execute("""
-            UPDATE puntos
-            SET score = score + %s
-            WHERE user_id = %s
-        """, (premio, target_id))
+    cur.execute("""
+        UPDATE puntos
+        SET score = score + %s
+        WHERE user_id = %s
+    """, (premio, target_id))
 
-        conn.commit()
+    conn.commit()
 
-        ultimo_obsequio.append((username, premio))
+    ultimo_obsequio.append((username, premio))
 
-        conejito = " 🐰" if premio == premio_mayor else ""
+    conejito = " 🐰" if premio == premio_mayor else ""
 
-        try:
-
-            await context.bot.send_message(
-                chat_id=int(target_id),
-                text=(
-                    f"🐰 ¡El conejito pasó por aquí!\n\n"
-                    f"Te dejó un obsequio de "
-                    f"{premio} kooins{conejito}.\n\n"
-                    f"¡Espero que disfrutes tu regalito! 𖹭"
-                )
+    try:
+        await context.bot.send_message(
+            chat_id=int(target_id),
+            text=(
+                f"🐰 ¡El conejito pasó por aquí!\n\n"
+                f"Te dejó un obsequio de "
+                f"{premio} kooins{conejito}.\n\n"
+                f"¡Espero que disfrutes tu regalito! 𖹭"
             )
+        )
+        enviados += 1
 
-            enviados += 1
-
-        except Exception:
-            no_entregados += 1
+    except Exception:
+        no_entregados += 1
 
     await update.message.reply_text(
         f"🐰 El conejito salió a repartir regalos...\n\n"
