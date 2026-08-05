@@ -5,7 +5,6 @@ import datetime, json, os, random
 import os
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-
 ARCHIVO = "puntos.json"
 
 SUPERADMINS = ["7943521525"]  # solo tú
