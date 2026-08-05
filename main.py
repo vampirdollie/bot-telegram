@@ -246,28 +246,22 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         cantidad = int(context.args[0])
         objetivo = context.args[1]
-        # Buscar el user_id real en la tabla usando el username
         if objetivo.startswith("@"):
+            # Buscar el user_id real en la tabla usando el username
             cur.execute("SELECT user_id FROM puntos WHERE username=%s", (objetivo,))
             row = cur.fetchone()
-            if row:
-                target_id = row[0]  # usamos el user_id real
-                username = objetivo
-            else:
+            if not row:
                 await update.message.reply_text("ese usuario aún no ha jugado, no puedo darle kooins. ૮◞ ◟ ა")
                 return
+            target_id = row[0]   # usamos el user_id real
+            username = objetivo
         else:
             # si se pasa un ID numérico directamente
             target_id = objetivo
             username = f"ID:{objetivo}"
-        # Actualizar puntos
-        cur.execute("""
-        INSERT INTO puntos (user_id, username, score)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (user_id) DO UPDATE
-        SET score = puntos.score + EXCLUDED.score,
-            username = EXCLUDED.username
-        """, (target_id, username, cantidad))
+        # Actualizar puntos en la fila del user_id
+        cur.execute("UPDATE puntos SET score = score + %s, username = %s WHERE user_id = %s",
+                    (cantidad, username, target_id))
         conn.commit()
         # Consultar acumulado correcto
         cur.execute("SELECT score FROM puntos WHERE user_id=%s", (target_id,))
