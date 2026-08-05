@@ -372,4 +372,10 @@ app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
-app.run_polling()
+# Aquí cambias polling por webhook
+app.run_webhook(
+    listen="0.0.0.0",
+    port=8000,
+    url_path=TOKEN,
+    webhook_url=f"https://bot-telegram-2-lcx9.onrender.com/{TOKEN}"
+)
