@@ -1,11 +1,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
-import datetime, json, os, random
-
-import os
+import datetime, os, random
+import psycopg2
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-ARCHIVO = "puntos.json"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 SUPERADMINS = ["7943521525"]  # solo tú
 
@@ -27,6 +26,24 @@ BLOQUEADOS = [
     "6813476131"  # cat
 ]
 
+# --- Conexión a Postgres ---
+conn = psycopg2.connect(DATABASE_URL)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS puntos (
+    user_id TEXT PRIMARY KEY,
+    username TEXT,
+    score INTEGER
+)
+""")
+conn.commit()
+
+# --- Variables en memoria para bolsas y usos ---
+bolsas = {"A": 0, "B": 0, "C": 0}
+usos = {}
+ultima_actualizacion = None
+
 async def mensaje_bloqueo(update: Update):
     texto = """⠀⢀⣀⠀⠀⠀⠀⠀⢀⣀⠀
 ⢠⣯⢬⣷⡀⠀⠀⣴⡯⢌⣧
@@ -39,27 +56,12 @@ async def mensaje_bloqueo(update: Update):
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"""
     await update.message.reply_text(texto)
 
-# --- Cargar datos ---
-if os.path.exists(ARCHIVO):
-    with open(ARCHIVO, "r") as f:
-        datos = json.load(f)
-    puntos = datos.get("puntos", {})
-    bolsas = datos.get("bolsas", {"A": 0, "B": 0, "C": 0})
-    usos = {uid: datetime.date.fromisoformat(fecha) for uid, fecha in datos.get("usos", {}).items()}
-    ultima_actualizacion = datetime.date.fromisoformat(datos.get("ultima_actualizacion")) if "ultima_actualizacion" in datos else None
-else:
-    puntos = {}
-    bolsas = {"A": 0, "B": 0, "C": 0}
-    usos = {}
-    ultima_actualizacion = None
-
 # --- START ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     mensaje_start = """⠀⠀⠀ ⠀⠀⠀¡holi, personita! (ृ '꒳' ृ)
 ⠀⠀⠀  ⠀ ⠀bienvenida/o al bot que
 ⠀⠀⠀⠀  ⠀ ⠀⠀probará tu suerte.
@@ -68,10 +70,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⠀⠀⠀⠀⠀⠀⠀usa ".cmds" o "/cmds"
 
 ⠀eso sería todo por ahora, ¡hasta luego! 𖹭"""
-    await update.message.reply_photo(
-        photo=open("start.jpg", "rb"),
-        caption=mensaje_start
-    )
+    await update.message.reply_photo(photo=open("start.jpg", "rb"), caption=mensaje_start)
 
 # --- CMDS ---
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -79,7 +78,6 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     mensaje = """⠀
 /juegoinfo → ¿cómo funciona la dinámica?
 /abrir → empezar a jugar
@@ -104,7 +102,6 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     mensaje = """⠀⠀⠀
  ׄ𑊑ᰍㅤׄinfo :
 
@@ -124,7 +121,6 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     hoy = datetime.date.today()
     if ultima_actualizacion != hoy:
         await update.message.reply_text("✿ Las cajitas aún no están listas, espera a que la admin las configure.")
@@ -133,57 +129,36 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("ya gastaste tu intento, vuelve luego con más suerte. 𖹭")
         return
     usos[user_id] = hoy
-
     username = f"@{update.effective_user.username}" if update.effective_user.username else f"ID:{user_id}"
     valores = list(bolsas.values())
     random.shuffle(valores)
-    keyboard = [
-        [InlineKeyboardButton("🐰", callback_data=str(valores[0]))],
-        [InlineKeyboardButton("🐰", callback_data=str(valores[1]))],
-        [InlineKeyboardButton("🐰", callback_data=str(valores[2]))]
-    ]
+    keyboard = [[InlineKeyboardButton("🐰", callback_data=str(valores[i]))] for i in range(3)]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_photo(
-        photo=open("abrir.jpg", "rb"),
+    await update.message.reply_photo(photo=open("abrir.jpg", "rb"),
         caption=f":¨ ·.· ¨: ¡holi, {username}!\ndile fuera a la sal y elige tu fortuna de hoy.",
-        reply_markup=reply_markup
-    )
+        reply_markup=reply_markup)
 
 # --- ELEGIR BOLSA ---
 async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     user_id = str(query.from_user.id)
     if user_id in BLOQUEADOS:
-        # usamos tu mensaje personalizado
         await mensaje_bloqueo(update)
         return
-
     username = f"@{query.from_user.username}" if query.from_user.username else f"ID:{user_id}"
     premio = int(query.data)
-
-    if user_id not in puntos:
-        puntos[user_id] = {"score": 0, "username": username}
-    puntos[user_id]["score"] += premio
-    puntos[user_id]["username"] = username
-
-    with open(ARCHIVO, "w") as f:
-        json.dump({
-            "puntos": puntos,
-            "bolsas": bolsas,
-            "usos": {uid: fecha.isoformat() for uid, fecha in usos.items()},
-            "ultima_actualizacion": ultima_actualizacion.isoformat() if ultima_actualizacion else None
-        }, f)
-
-    # identificar el mayor valor del día
+    cur.execute("""
+    INSERT INTO puntos (user_id, username, score)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (user_id) DO UPDATE
+    SET score = puntos.score + EXCLUDED.score,
+        username = EXCLUDED.username
+    """, (user_id, username, premio))
+    conn.commit()
     max_valor = max(bolsas.values())
     extra = " 🐰" if premio == max_valor else ""
-
-    await query.edit_message_caption(
-        caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )"
-    )
+    await query.edit_message_caption(caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )")
 
 # --- TOTAL ---
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -191,8 +166,9 @@ async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
-    acumulado = puntos.get(user_id, {"score": 0})["score"]
+    cur.execute("SELECT score FROM puntos WHERE user_id=%s", (user_id,))
+    row = cur.fetchone()
+    acumulado = row[0] if row else 0
     await update.message.reply_text(f"tu fortuna actual es: {acumulado} kooins. ✿")
 
 # --- RANKING ---
@@ -201,28 +177,18 @@ async def ranking(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     if user_id not in SUPERADMINS:
         await update.message.reply_text("el ranking es privado, solo admins pueden verlo. ¡qué nervios!")
         return
-
-    if not puntos or all(data["score"] == 0 for _, data in puntos.items()):
+    cur.execute("SELECT username, score FROM puntos ORDER BY score DESC")
+    rows = cur.fetchall()
+    if not rows:
         await update.message.reply_text("(｡•́︿•̀｡) todavía nadie ha ganado puntos,\n¡sé el primero en ganar!")
         return
-
-    ranking_lista = sorted(puntos.items(), key=lambda x: x[1]["score"], reverse=True)
-
     mensaje = "๑ ¡hola, admin!\nranking de participantes:\n\n"
-    for i, (uid, data) in enumerate(ranking_lista, start=1):
-        jugador = data["username"]
-        if i == 1:
-            icono = "🐰"
-        elif i <= 3:
-            icono = "⭐"
-        else:
-            icono = f"{i}."
-        mensaje += f"{icono} {jugador}: {data['score']} kooins\n"
-
+    for i, (jugador, score) in enumerate(rows, start=1):
+        icono = "🐰" if i == 1 else ("⭐" if i <= 3 else f"{i}.")
+        mensaje += f"{icono} {jugador}: {score} kooins\n"
     await update.message.reply_text(mensaje)
 
 # --- RESET ---
@@ -231,24 +197,12 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     if user_id not in SUPERADMINS:
         await update.message.reply_text("¡solo la admin puede reiniciar los puntos!")
         return
-
-    for uid in puntos:
-        puntos[uid]["score"] = 0
-
+    cur.execute("UPDATE puntos SET score = 0")
+    conn.commit()
     usos.clear()
-
-    with open(ARCHIVO, "w") as f:
-        json.dump({
-            "puntos": puntos,
-            "bolsas": bolsas,
-            "usos": {},
-            "ultima_actualizacion": ultima_actualizacion.isoformat() if ultima_actualizacion else None
-        }, f)
-
     await update.message.reply_text("se ha reiniciado el ranking, todos vuelven a cero. (╥ ╥)")
 
 # --- SET BOLSAS ---
@@ -257,34 +211,20 @@ async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     if user_id not in SUPERADMINS:
         await update.message.reply_text("solo la admin puede cambiar los valores de las bolsas.")
         return
-
     try:
         a, b, c = map(int, context.args)
         global bolsas, ultima_actualizacion
         bolsas = {"A": a, "B": b, "C": c}
         ultima_actualizacion = datetime.date.today()
-
-        with open(ARCHIVO, "w") as f:
-            json.dump({
-                "puntos": puntos,
-                "bolsas": bolsas,
-                "usos": {uid: fecha.isoformat() for uid, fecha in usos.items()},
-                "ultima_actualizacion": ultima_actualizacion.isoformat()
-            }, f)
-
-        # identificar el mayor valor
         max_valor = max(a, b, c)
         mensaje = "¡valores actualizados!\n"
         mensaje += f"A = {a} kooins {'🐰' if a == max_valor else ''}\n"
         mensaje += f"B = {b} kooins {'🐰' if b == max_valor else ''}\n"
         mensaje += f"C = {c} kooins {'🐰' if c == max_valor else ''}"
-
         await update.message.reply_text(mensaje)
-
     except:
         await update.message.reply_text("⚠️ : usa el formato: /setbolsas <A> <B> <C>")
 
@@ -294,41 +234,32 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in SUPERADMINS:
         await update.message.reply_text("¡alto ahí, velocista! este comando solo lo puede usar la admin.")
         return
-
     if len(context.args) < 2:
         await update.message.reply_text("usa el formato /kooins <cantidad> @usuario")
         return
-
     try:
         cantidad = int(context.args[0])
         objetivo = context.args[1]
-
-        # si viene como @username, lo usamos directamente como nombre
+        target_id = objetivo
         if objetivo.startswith("@"):
-            target_id = objetivo  # lo guardamos como clave de texto
+            username = objetivo
         else:
-            target_id = objetivo  # puede ser un ID numérico
-
-        # si no existe en puntos, lo creamos
-        if target_id not in puntos:
-            puntos[target_id] = {"score": 0, "username": objetivo}
-
-        puntos[target_id]["score"] += cantidad
-        puntos[target_id]["username"] = objetivo
-
-        with open(ARCHIVO, "w") as f:
-            json.dump({
-                "puntos": puntos,
-                "bolsas": bolsas,
-                "usos": {uid: fecha.isoformat() for uid, fecha in usos.items()},
-                "ultima_actualizacion": ultima_actualizacion.isoformat() if ultima_actualizacion else None
-            }, f)
-
+            username = f"ID:{objetivo}"
+        cur.execute("""
+        INSERT INTO puntos (user_id, username, score)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id) DO UPDATE
+        SET score = puntos.score + EXCLUDED.score,
+            username = EXCLUDED.username
+        """, (target_id, username, cantidad))
+        conn.commit()
+        cur.execute("SELECT score FROM puntos WHERE user_id=%s", (target_id,))
+        row = cur.fetchone()
+        acumulado = row[0] if row else cantidad
         await update.message.reply_text(
-            f"¡se sumaron {cantidad} kooins a {puntos[target_id]['username']}!\n"
-            f"ahora tiene {puntos[target_id]['score']} kooins. ٩(ˊᗜˋ*)و"
+            f"¡se sumaron {cantidad} kooins a {username}!\n"
+            f"ahora tiene {acumulado} kooins. ٩(ˊᗜˋ*)و"
         )
-
     except ValueError:
         await update.message.reply_text("¡ups! la cantidad debe ser un número entero.")
 
@@ -336,12 +267,10 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
-
     user_id = str(update.effective_user.id)
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     texto = update.message.text.lower()
     if texto.startswith(".abrir"):
         await abrir(update, context)
