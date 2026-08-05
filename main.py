@@ -43,7 +43,6 @@ conn.commit()
 bolsas = {"A": 0, "B": 0, "C": 0}
 usos = {}
 ultima_actualizacion = None
-ultimo_obsequio = []
 
 async def mensaje_bloqueo(update: Update):
     texto = """⠀⢀⣀⠀⠀⠀⠀⠀⢀⣀⠀
@@ -276,6 +275,8 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("¡ups! la cantidad debe ser un número entero.")
 
 # --- OBSEQUIO (solo admin) ---
+ultimo_obsequio = []
+
 async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
@@ -293,7 +294,6 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         premio1, premio2, premio3 = map(int, context.args)
-
     except ValueError:
         await update.message.reply_text(
             "los premios deben ser números enteros."
@@ -315,60 +315,65 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     enviados = 0
     no_entregados = 0
 
-participantes = sum(
-    1 for target_id, _ in usuarios
-    if str(target_id) not in BLOQUEADOS
-)
+    participantes = sum(
+        1
+        for target_id, _ in usuarios
+        if str(target_id) not in BLOQUEADOS
+    )
 
     premio_mayor = max(premio1, premio2, premio3)
 
-for target_id, username in usuarios:
+    for target_id, username in usuarios:
 
-    # No enviar obsequios a usuarios bloqueados
-    if str(target_id) in BLOQUEADOS:
-        continue
+        if str(target_id) in BLOQUEADOS:
+            continue
 
-    premio = random.choices(
-        [premio1, premio2, premio3],
-        weights=[50, 35, 15]
-    )[0]
+        premio = random.choices(
+            [premio1, premio2, premio3],
+            weights=[50, 35, 15]
+        )[0]
 
-    cur.execute("""
-        UPDATE puntos
-        SET score = score + %s
-        WHERE user_id = %s
-    """, (premio, target_id))
-
-    conn.commit()
-
-    ultimo_obsequio.append((username, premio))
-
-    conejito = " 🐰" if premio == premio_mayor else ""
-
-    try:
-        await context.bot.send_message(
-            chat_id=int(target_id),
-            text=(
-                f"🐰 ¡El conejito pasó por aquí!\n\n"
-                f"Te dejó un obsequio de "
-                f"{premio} kooins{conejito}.\n\n"
-                f"¡Espero que disfrutes tu regalito! 𖹭"
-            )
+        cur.execute(
+            """
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+            """,
+            (premio, target_id)
         )
-        enviados += 1
 
-    except Exception:
-        no_entregados += 1
+        conn.commit()
+
+        ultimo_obsequio.append((username, premio))
+
+        conejito = " 🐰" if premio == premio_mayor else ""
+
+        try:
+            await context.bot.send_message(
+                chat_id=int(target_id),
+                text=(
+                    "🐰 ¡El conejito pasó por aquí!\n\n"
+                    f"Te dejó un obsequio de "
+                    f"{premio} kooins{conejito}.\n\n"
+                    "¡Espero que disfrutes tu regalito! ✿"
+                )
+            )
+            enviados += 1
+
+        except Exception:
+            no_entregados += 1
 
     await update.message.reply_text(
-        f"🐰 El conejito salió a repartir regalos...\n\n"
+        "🐰 El conejito salió a repartir regalos...\n\n"
         f"✿ Participantes: {participantes}\n"
         f"💬 Mensajes enviados: {enviados}\n"
         f"📭 No entregados: {no_entregados}\n\n"
-        f"¡Espero que todos disfruten su obsequio! ✿ "
+        "¡Espero que todos disfruten su obsequio! 𖹭"
     )
 
+
 # --- VER OBSEQUIO (solo admin) ---
+
 async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(update.effective_user.id)
