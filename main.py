@@ -394,7 +394,7 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reverse=True
     )
 
-    mensaje = "🎁 Último obsequio\n\n"
+    mensaje = "๑ último obsequio\n\n"
 
     emojis = ["🐰", "🌸", "🍀"]
 
@@ -402,7 +402,7 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         emoji = emojis[i] if i < len(emojis) else "✨"
 
-        mensaje += f"{emoji} Premio ({premio} kooins)\n"
+        mensaje += f"{emoji} premio ({premio} kooins)\n"
 
         for username, valor in ultimo_obsequio:
             if valor == premio:
@@ -410,7 +410,7 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         mensaje += "\n"
 
-    mensaje += f"Participantes: {len(ultimo_obsequio)}"
+    mensaje += f"๑ participantes: {len(ultimo_obsequio)}"
 
     await update.message.reply_text(mensaje)
 
