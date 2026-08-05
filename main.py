@@ -315,21 +315,18 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     enviados = 0
     no_entregados = 0
 
-    participantes = sum(
-        1 for targed_id, _ in usuarios
-        if str(targed_id) not in BLOQUEADOS
-    )
-
-    premio_mayor = max(premio1, premio2, premio3)
-
-    for target_id, username in usuarios:
-    if str(targed_id) in BLOQUEADOS:
+participantes = sum(
+    1 for target_id, _ in usuarios
+    if str(target_id) not in BLOQUEADOS
+)
+premio_mayor = max(premio1, premio2, premio3)
+for target_id, username in usuarios:
+    if str(target_id) in BLOQUEADOS:
         continue
-
-        premio = random.choices(
-            [premio1, premio2, premio3],
-            weights=[50, 35, 15]
-        )[0]
+    premio = random.choices(
+        [premio1, premio2, premio3],
+        weights=[50, 35, 15]
+    )[0]
 
         cur.execute("""
             UPDATE puntos
