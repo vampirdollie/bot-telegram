@@ -43,6 +43,7 @@ conn.commit()
 bolsas = {"A": 0, "B": 0, "C": 0}
 usos = {}
 ultima_actualizacion = None
+ultimo_obsequio = []
 
 async def mensaje_bloqueo(update: Update):
     texto = """⠀⢀⣀⠀⠀⠀⠀⠀⢀⣀⠀
@@ -274,6 +275,118 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("¡ups! la cantidad debe ser un número entero.")
 
+# --- OBSEQUIO (solo admin) ---
+async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        await update.message.reply_text(
+            "¡solo la admin puede repartir obsequios! 🐰"
+        )
+        return
+
+    if len(context.args) != 3:
+        await update.message.reply_text(
+            "usa el formato:\n/obsequio <premio1> <premio2> <premio3>"
+        )
+        return
+
+    try:
+        premio1, premio2, premio3 = map(int, context.args)
+
+    except ValueError:
+        await update.message.reply_text(
+            "los premios deben ser números enteros."
+        )
+        return
+
+    cur.execute("SELECT user_id, username FROM puntos")
+    usuarios = cur.fetchall()
+
+    if not usuarios:
+        await update.message.reply_text(
+            "todavía no hay jugadores registrados."
+        )
+        return
+
+    global ultimo_obsequio
+    ultimo_obsequio = []
+
+    enviados = 0
+    no_entregados = 0
+
+    participantes = sum(
+        1 for targed_id, _ in usuarios
+        if str(targed_id) not in BLOQUEADOS
+    )
+
+    premio_mayor = max(premio1, premio2, premio3)
+
+    for target_id, username in usuarios:
+    if str(targed_id) in BLOQUEADOS:
+        continue
+
+        premio = random.choices(
+            [premio1, premio2, premio3],
+            weights=[50, 35, 15]
+        )[0]
+
+        cur.execute("""
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+        """, (premio, target_id))
+        conn.commit()
+        ultimo_obsequio.append((username, premio))
+        conejito = " 🐰" if premio == premio_mayor else ""
+        try:
+            await context.bot.send_message(
+                chat_id=int(target_id),
+                text=(
+                    f"🐰 ¡El conejito pasó por aquí!\n\n"
+                    f"Te dejó un obsequio de "
+                    f"{premio} kooins{conejito}.\n\n"
+                    f"¡Espero que disfrutes tu regalito! ✿"
+                )
+            )
+            enviados += 1
+        except Exception:
+            no_entregados += 1
+    await update.message.reply_text(
+        f"🐰 El conejito salió a repartir regalos...\n\n"
+        f"✿ Participantes: {participantes}\n"
+        f"💬 Mensajes enviados: {enviados}\n"
+        f"📭 No entregados: {no_entregados}\n\n"
+        f"¡Espero que todos disfruten su obsequio! 𖹭"
+    )
+
+# --- VER OBSEQUIO (solo admin) ---
+async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    if user_id not in SUPERADMINS:
+        return
+    global ultimo_obsequio
+    if not ultimo_obsequio:
+        await update.message.reply_text(
+            "todavía no has enviado ningún obsequio."
+        )
+        return
+    premios = sorted(
+        list(set(p for _, p in ultimo_obsequio)),
+        reverse=True
+    )
+    mensaje = "🎁 Último obsequio\n\n"
+    emojis = ["🐰", "🌸", "🍀"]
+    for i, premio in enumerate(premios):
+        emoji = emojis[i] if i < len(emojis) else "✨"
+        mensaje += f"{emoji} Premio ({premio} kooins)\n"
+        for username, valor in ultimo_obsequio:
+            if valor == premio:
+                mensaje += f"• {username}\n"
+        mensaje += "\n"
+    mensaje += f"Participantes: {len(ultimo_obsequio)}"
+    await update.message.reply_text(mensaje)
+
 # --- HANDLER PARA "." ---
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -310,6 +423,8 @@ app.add_handler(CommandHandler("reset", reset))
 app.add_handler(CommandHandler("setbolsas", setbolsas))
 app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
+app.add_handler(CommandHandler("obsequio", obsequio))
+app.add_handler(CommandHandler("verobsequio", verobsequio))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 # Aquí cambias polling por webhook
