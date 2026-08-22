@@ -44,7 +44,6 @@ conn.commit()
 
 # --- Variables en memoria para bolsas y usos ---
 bolsas = {"A": 0, "B": 0, "C": 0}
-usos = {}
 ultima_actualizacion = None
 # --- Cargar configuración guardada ---
 cur.execute("""
@@ -135,27 +134,73 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(mensaje)
 
 # --- ABRIR ---
+# --- ABRIR ---
 async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
+
     hoy = datetime.date.today()
+
     if ultima_actualizacion != hoy:
-        await update.message.reply_text("✿ Las cajitas aún no están listas, espera a que la admin las configure.")
+        await update.message.reply_text(
+            "✿ Las cajitas aún no están listas, espera a que la admin las configure."
+        )
         return
-    if user_id in usos and usos[user_id] == hoy:
-        await update.message.reply_text("ya gastaste tu intento, vuelve luego con más suerte. 𖹭")
+
+    # --- Comprobar si ya jugó hoy ---
+    cur.execute(
+        "SELECT fecha FROM usos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    row = cur.fetchone()
+
+    if row and row[0] == hoy:
+        await update.message.reply_text(
+            "ya gastaste tu intento, vuelve luego con más suerte. 𖹭"
+        )
         return
-    usos[user_id] = hoy
-    username = f"@{update.effective_user.username}" if update.effective_user.username else f"ID:{user_id}"
+
+    # --- Registrar el intento en PostgreSQL ---
+    cur.execute(
+        """
+        INSERT INTO usos (user_id, fecha)
+        VALUES (%s, %s)
+        ON CONFLICT (user_id)
+        DO UPDATE SET fecha = EXCLUDED.fecha
+        """,
+        (user_id, hoy)
+    )
+
+    conn.commit()
+
+    username = (
+        f"@{update.effective_user.username}"
+        if update.effective_user.username
+        else f"ID:{user_id}"
+    )
+
     valores = list(bolsas.values())
     random.shuffle(valores)
-    keyboard = [[InlineKeyboardButton("🐰", callback_data=str(valores[i]))] for i in range(3)]
+
+    keyboard = [
+        [InlineKeyboardButton("🐰", callback_data=str(valores[i]))]
+        for i in range(3)
+    ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_photo(photo=open("abrir.jpg", "rb"),
-        caption=f":¨ ·.· ¨: ¡holi, {username}!\ndile fuera a la sal y elige tu fortuna de hoy.",
-        reply_markup=reply_markup)
+
+    await update.message.reply_photo(
+        photo=open("abrir.jpg", "rb"),
+        caption=(
+            f":¨ ·.· ¨: ¡holi, {username}!\n"
+            "dile fuera a la sal y elige tu fortuna de hoy."
+        ),
+        reply_markup=reply_markup
+    )
 
 # --- ELEGIR BOLSA ---
 async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
