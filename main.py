@@ -380,7 +380,6 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("¡ups! la cantidad debe ser un número entero.")
 
 # --- OBSEQUIO (solo admin) ---
-ultimo_obsequio = []
 
 async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -414,8 +413,9 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    global ultimo_obsequio
-    ultimo_obsequio = []
+    # Crear un número para identificar este reparto
+    cur.execute("SELECT COALESCE(MAX(lote), 0) + 1 FROM obsequios")
+    lote = cur.fetchone()[0]
 
     enviados = 0
     no_entregados = 0
@@ -430,6 +430,7 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for target_id, username in usuarios:
 
+        # Los bloqueados NO reciben obsequio
         if str(target_id) in BLOQUEADOS:
             continue
 
@@ -438,6 +439,17 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             weights=[50, 35, 15]
         )[0]
 
+        # Guardar el premio en PostgreSQL
+        cur.execute(
+            """
+            INSERT INTO obsequios
+            (lote, user_id, username, premio)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (lote, target_id, username, premio)
+        )
+
+        # Sumar el premio a sus kooins
         cur.execute(
             """
             UPDATE puntos
@@ -448,8 +460,6 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         conn.commit()
-
-        ultimo_obsequio.append((username, premio))
 
         conejito = " 🐰" if premio == premio_mayor else ""
 
@@ -473,7 +483,7 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✿ Participantes: {participantes}\n"
         f"💬 Mensajes enviados: {enviados}\n"
         f"📭 No entregados: {no_entregados}\n\n"
-        "¡Espero que todos disfruten su obsequio! 𖹭"
+        "¡Esperamos que todos disfruten su obsequio! 𖹭"
     )
 
 
@@ -486,16 +496,42 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in SUPERADMINS:
         return
 
-    global ultimo_obsequio
+    # Buscar el último reparto realizado
+    cur.execute("""
+        SELECT lote
+        FROM obsequios
+        ORDER BY lote DESC
+        LIMIT 1
+    """)
 
-    if not ultimo_obsequio:
+    row = cur.fetchone()
+
+    if not row:
+        await update.message.reply_text(
+            "todavía no has enviado ningún obsequio."
+        )
+        return
+
+    ultimo_lote = row[0]
+
+    # Obtener los premios del último reparto
+    cur.execute("""
+        SELECT username, premio
+        FROM obsequios
+        WHERE lote = %s
+        ORDER BY premio DESC
+    """, (ultimo_lote,))
+
+    filas = cur.fetchall()
+
+    if not filas:
         await update.message.reply_text(
             "todavía no has enviado ningún obsequio."
         )
         return
 
     premios = sorted(
-        list(set(p for _, p in ultimo_obsequio)),
+        set(premio for _, premio in filas),
         reverse=True
     )
 
@@ -509,13 +545,13 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         mensaje += f"{emoji} premio ({premio} kooins)\n"
 
-        for username, valor in ultimo_obsequio:
+        for username, valor in filas:
             if valor == premio:
                 mensaje += f"• {username}\n"
 
         mensaje += "\n"
 
-    mensaje += f"๑ participantes: {len(ultimo_obsequio)}"
+    mensaje += f"๑ participantes: {len(filas)}"
 
     await update.message.reply_text(mensaje)
 
