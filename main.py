@@ -46,6 +46,22 @@ conn.commit()
 bolsas = {"A": 0, "B": 0, "C": 0}
 usos = {}
 ultima_actualizacion = None
+# --- Cargar configuración guardada ---
+cur.execute("""
+SELECT bolsa_a, bolsa_b, bolsa_c, fecha
+FROM configuracion
+WHERE id = 1
+""")
+
+row = cur.fetchone()
+
+if row:
+    bolsas = {
+        "A": row[0],
+        "B": row[1],
+        "C": row[2]
+    }
+    ultima_actualizacion = row[3]
 
 async def mensaje_bloqueo(update: Update):
     texto = """⠀⢀⣀⠀⠀⠀⠀⠀⢀⣀⠀
@@ -228,6 +244,24 @@ async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         global bolsas, ultima_actualizacion
         bolsas = {"A": a, "B": b, "C": c}
         ultima_actualizacion = datetime.date.today()
+        cur.execute("""
+INSERT INTO configuracion
+(id, bolsa_a, bolsa_b, bolsa_c, fecha)
+VALUES (1, %s, %s, %s, %s)
+ON CONFLICT (id)
+DO UPDATE SET
+    bolsa_a = EXCLUDED.bolsa_a,
+    bolsa_b = EXCLUDED.bolsa_b,
+    bolsa_c = EXCLUDED.bolsa_c,
+    fecha = EXCLUDED.fecha
+""", (
+    a,
+    b,
+    c,
+    ultima_actualizacion
+))
+
+conn.commit()
         max_valor = max(a, b, c)
         mensaje = "¡valores actualizados!\n"
         mensaje += f"A = {a} kooins {'🐰' if a == max_valor else ''}\n"
