@@ -233,43 +233,58 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- SET BOLSAS ---
 async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
+
     if user_id not in SUPERADMINS:
-        await update.message.reply_text("solo la admin puede cambiar los valores de las bolsas.")
+        await update.message.reply_text(
+            "solo la admin puede cambiar los valores de las bolsas."
+        )
         return
+
     try:
         a, b, c = map(int, context.args)
+
         global bolsas, ultima_actualizacion
+
         bolsas = {"A": a, "B": b, "C": c}
         ultima_actualizacion = datetime.date.today()
-        cur.execute("""
-INSERT INTO configuracion
-(id, bolsa_a, bolsa_b, bolsa_c, fecha)
-VALUES (1, %s, %s, %s, %s)
-ON CONFLICT (id)
-DO UPDATE SET
-    bolsa_a = EXCLUDED.bolsa_a,
-    bolsa_b = EXCLUDED.bolsa_b,
-    bolsa_c = EXCLUDED.bolsa_c,
-    fecha = EXCLUDED.fecha
-""", (
-    a,
-    b,
-    c,
-    ultima_actualizacion
-))
 
-conn.commit()
+        # Guardar configuración en PostgreSQL
+        cur.execute("""
+            INSERT INTO configuracion
+            (id, bolsa_a, bolsa_b, bolsa_c, fecha)
+            VALUES (1, %s, %s, %s, %s)
+            ON CONFLICT (id)
+            DO UPDATE SET
+                bolsa_a = EXCLUDED.bolsa_a,
+                bolsa_b = EXCLUDED.bolsa_b,
+                bolsa_c = EXCLUDED.bolsa_c,
+                fecha = EXCLUDED.fecha
+        """, (
+            a,
+            b,
+            c,
+            ultima_actualizacion
+        ))
+
+        conn.commit()
+
         max_valor = max(a, b, c)
+
         mensaje = "¡valores actualizados!\n"
         mensaje += f"A = {a} kooins {'🐰' if a == max_valor else ''}\n"
         mensaje += f"B = {b} kooins {'🐰' if b == max_valor else ''}\n"
         mensaje += f"C = {c} kooins {'🐰' if c == max_valor else ''}"
+
         await update.message.reply_text(mensaje)
+
     except:
-        await update.message.reply_text("⚠️ : usa el formato: /setbolsas <A> <B> <C>")
+        await update.message.reply_text(
+            "⚠️ : usa el formato: /setbolsas <A> <B> <C>"
+        )
 
 # --- KOOINS (solo admin) ---
 async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
