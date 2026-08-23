@@ -641,16 +641,17 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-await context.bot.send_photo(
-    chat_id=int(KOALA_CHAT_ID),
-    photo=open("koala.jpg", "rb"),
-    caption=(
-        "────۶ৎ 🐨 ¡KOALA PERDIDO!────\n\n"
-        "Oh, parece que el koala se ha escapado..\n\n"
-        "¡Atrápalo antes que los demás! ₍₍⚞(˶>ᗜ<˶)⚟⁾⁾"
-    ),
-    reply_markup=reply_markup
-)
+    # Enviar koala con imagen
+    await context.bot.send_photo(
+        chat_id=int(KOALA_CHAT_ID),
+        photo=open("koala.jpg", "rb"),
+        caption=(
+            "────۶ৎ 🐨 ¡KOALA PERDIDO!────\n\n"
+            "Oh, parece que el koala se ha escapado..\n\n"
+            "¡Atrápalo antes que los demás! ₍₍⚞(˶>ᗜ<˶)⚟⁾⁾"
+        ),
+        reply_markup=reply_markup
+    )
 
     await update.message.reply_text(
         f"🐨 ¡Koala enviado al grupo!\n"
