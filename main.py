@@ -265,30 +265,15 @@ async def ranking(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- RESET ---
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-
     if user_id not in SUPERADMINS:
         await update.message.reply_text("¡solo la admin puede reiniciar los puntos!")
         return
-
-    try:
-        cur.execute("UPDATE puntos SET score = 0")
-        conn.commit()
-        usos.clear()
-
-        print("RESET: puntos reiniciados correctamente")
-
-        await update.message.reply_text(
-            "se ha reiniciado el ranking, todos vuelven a cero. (╥ ╥)"
-        )
-
-        print("RESET: mensaje enviado correctamente")
-
-    except Exception as e:
-        print(f"ERROR EN /reset: {e}")
+    cur.execute("UPDATE puntos SET score = 0")
+    conn.commit()
+    await update.message.reply_text("se ha reiniciado el ranking, todos vuelven a cero. (╥ ╥)")
 
 # --- SET BOLSAS ---
 async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
