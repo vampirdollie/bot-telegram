@@ -716,6 +716,30 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
     )
 
+# --- CANCELAR KOALA (solo admin) ---
+
+async def cancelarkoala(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        await update.message.reply_text(
+            "este comando es solo para la admin. 🐨"
+        )
+        return
+
+    cur.execute("""
+        UPDATE koala_evento
+        SET activo = FALSE
+        WHERE activo = TRUE
+    """)
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "୨ৎ koala cancelado.\n"
+        "ya puedes iniciar otro cuando quieras. ✿"
+    )
+
 # --- HANDLER PARA "." ---
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -759,6 +783,7 @@ app.add_handler(CallbackQueryHandler(
     atrapar_koala,
     pattern=r"^koala:"
 ))
+app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 # Aquí cambias polling por webhook
