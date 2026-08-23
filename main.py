@@ -635,7 +635,7 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton(
-            "🐨 ATRAPAR",
+            "🐨 ‹𝟹",
             callback_data=f"koala:{evento_id}"
         )]
     ]
@@ -646,6 +646,7 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=int(KOALA_CHAT_ID),
         text=(
             "🐨 ¡KOALA PERDIDO!\n\n"
+            "Oh, parece que el koala se ha escapado..\n\n"
             "¡Atrápalo antes que los demás! ₍₍⚞(˶>ᗜ<˶)⚟⁾⁾"
         ),
         reply_markup=reply_markup
@@ -774,15 +775,15 @@ app.add_handler(CommandHandler("total", total))
 app.add_handler(CommandHandler("ranking", ranking))
 app.add_handler(CommandHandler("reset", reset))
 app.add_handler(CommandHandler("setbolsas", setbolsas))
+app.add_handler(CallbackQueryHandler(
+    atrapar_koala,
+    pattern=r"^koala:"
+))
 app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
 app.add_handler(CommandHandler("koala", koala))
-app.add_handler(CallbackQueryHandler(
-    atrapar_koala,
-    pattern=r"^koala:"
-))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
