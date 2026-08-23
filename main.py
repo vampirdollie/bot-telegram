@@ -685,7 +685,7 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not row:
         await query.answer(
-            "(｡ᵕ ◞ _◟) ¡muy tarde! alguien ya atrapó al koala.",
+            "(｡ᵕ ◞ _◟) ¡muy tarde! alguien ya atrapó el koala.",
             show_alert=True
         )
         return
@@ -709,12 +709,13 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
-await query.edit_message_caption(
-    caption=(
-        f"🐨 ¡{username} lo ha atrapado!\n\n"
-        f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
+    # Cambiar el texto de la imagen por el resultado
+    await query.edit_message_caption(
+        caption=(
+            f"🐨 ¡{username} lo ha atrapado!\n\n"
+            f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
+        )
     )
-)
 
 # --- CANCELAR KOALA (solo admin) ---
 
