@@ -12,13 +12,9 @@ SUPERADMINS = ["7943521525"]  # solo tú
 # --- Bloqueados ---
 BLOQUEADOS = [
     "6378265355", # liss
-    "6905064136", # valu
     "5353963160", # ali
     "7740467368", # pau
-    "5515948854", # paris
     "5760026959", # lia
-    "8124589828", # leis
-    "1296115044", # bel
     "5924728043", # gum
     "8504305248", # meli
     "6727430013", # neo
@@ -713,10 +709,12 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
-    await query.edit_message_text(
+await query.edit_message_caption(
+    caption=(
         f"🐨 ¡{username} lo ha atrapado!\n\n"
         f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
     )
+)
 
 # --- CANCELAR KOALA (solo admin) ---
 
