@@ -5,6 +5,7 @@ import psycopg2
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
+KOALA_CHAT_ID = os.getenv("KOALA_CHAT_ID")
 
 SUPERADMINS = ["7943521525"]  # solo tú
 
@@ -555,6 +556,166 @@ async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(mensaje)
 
+# --- KOALA PERDIDO (solo admin) ---
+
+async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        await update.message.reply_text(
+            "¡alto ahí! este comando solo lo puede usar la admin. 🐨"
+        )
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa el formato:\n/koala <cantidad>"
+        )
+        return
+
+    try:
+        premio = int(context.args[0])
+
+        if premio <= 0:
+            raise ValueError
+
+    except ValueError:
+        await update.message.reply_text(
+            "el premio debe ser un número entero mayor que 0."
+        )
+        return
+
+    if not KOALA_CHAT_ID:
+        await update.message.reply_text(
+            "⚠️ grupo no disponible para jugar."
+        )
+        return
+
+    # Crear el evento del koala
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS koala_evento (
+            id SERIAL PRIMARY KEY,
+            premio INTEGER NOT NULL,
+            activo BOOLEAN DEFAULT TRUE,
+            ganador_id BIGINT
+        )
+    """)
+    conn.commit()
+
+    # Comprobar que no haya otro koala activo
+    cur.execute("""
+        SELECT id
+        FROM koala_evento
+        WHERE activo = TRUE
+        LIMIT 1
+    """)
+
+    if cur.fetchone():
+        await update.message.reply_text(
+            "ya hay un koala perdido en el grupo.. 🐨"
+        )
+        return
+
+    cur.execute("""
+        INSERT INTO koala_evento (premio, activo)
+        VALUES (%s, TRUE)
+    """, (premio,))
+
+    conn.commit()
+
+    cur.execute("""
+        SELECT id
+        FROM koala_evento
+        WHERE activo = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    evento_id = cur.fetchone()[0]
+
+    keyboard = [
+        [InlineKeyboardButton(
+            "🐨 ATRAPAR",
+            callback_data=f"koala:{evento_id}"
+        )]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.send_message(
+        chat_id=int(KOALA_CHAT_ID),
+        text=(
+            "🐨 ¡KOALA PERDIDO!\n\n"
+            "¡Atrápalo antes que los demás! ₍₍⚞(˶>ᗜ<˶)⚟⁾⁾"
+        ),
+        reply_markup=reply_markup
+    )
+
+    await update.message.reply_text(
+        f"🐨 ¡Koala enviado al grupo!\n"
+        f"Premio secreto: {premio} kooins."
+    )
+
+async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    # Bloqueados no pueden ganar
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en este juego.",
+            show_alert=True
+        )
+        return
+
+    evento_id = int(query.data.split(":")[1])
+
+    # Intentamos cerrar el evento.
+    # Solo el primero que lo haga con éxito será el ganador.
+    cur.execute("""
+        UPDATE koala_evento
+        SET activo = FALSE,
+            ganador_id = %s
+        WHERE id = %s
+          AND activo = TRUE
+        RETURNING premio
+    """, (user_id, evento_id))
+
+    row = cur.fetchone()
+
+    if not row:
+        await query.answer(
+            "(｡ᵕ ◞ _◟) ¡muy tarde! alguien ya atrapó al koala.",
+            show_alert=True
+        )
+        return
+
+    premio = row[0]
+
+    username = (
+        f"@{query.from_user.username}"
+        if query.from_user.username
+        else query.from_user.first_name
+    )
+
+    # Sumar los kooins al ranking
+    cur.execute("""
+        INSERT INTO puntos (user_id, username, score)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id) DO UPDATE
+        SET score = puntos.score + EXCLUDED.score,
+            username = EXCLUDED.username
+    """, (user_id, username, premio))
+
+    conn.commit()
+
+    await query.edit_message_text(
+        f"🐨 ¡{username} lo ha atrapado!\n\n"
+        f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
+    )
+
 # --- HANDLER PARA "." ---
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -593,6 +754,11 @@ app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
+app.add_handler(CommandHandler("koala", koala))
+app.add_handler(CallbackQueryHandler(
+    atrapar_koala,
+    pattern=r"^koala:"
+))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 # Aquí cambias polling por webhook
