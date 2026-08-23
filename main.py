@@ -646,8 +646,8 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=int(KOALA_CHAT_ID),
         photo=open("koala.jpg", "rb"),
         caption=(
-            "۫ ׅ ¡KOALA PERDIDO! ੭﹕﹒\n"
-            "Oh, parece que el koala se ha escapado..\n\n"
+            "⠀⠀⠀⠀۫ ׅ ¡KOALA PERDIDO! ੭﹕﹒\n"
+            "Oh, parece que el koala se ha escapado y quiso visitar el grupo..\n\n"
             "¡Atrápalo antes que los demás! ₍₍⚞(˶>ᗜ<˶)⚟⁾⁾"
         ),
         reply_markup=reply_markup
