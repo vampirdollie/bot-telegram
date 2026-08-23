@@ -661,8 +661,11 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(query.from_user.id)
 
     # Bloqueados no pueden ganar
-if user_id in BLOQUEADOS:
-    await query.answer()
+    if user_id in BLOQUEADOS:
+    await query.answer(
+        "no puedes participar en este juego.",
+        show_alert=True
+    )
     return
 
     evento_id = int(query.data.split(":")[1])
