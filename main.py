@@ -847,7 +847,7 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
         "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
@@ -1032,7 +1032,7 @@ async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     participantes = cur.fetchall()
 
     mensaje = (
-        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
         f"⠀⠀⠀⋆ . números: {len(participantes)}/{cantidad}\n\n"
@@ -1086,8 +1086,8 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not participantes:
         await update.message.reply_text(
-            "todavía nadie ha conseguido un número. ૮ ˶ᵔ ᵕ ᵔ˶ ა\n"
-            "la rifa no puede comenzar."
+            "todavía nadie ha conseguido un número.\n"
+            "la rifa no puede comenzar. (,,•᷄﹏‎•᷅,,)"
         )
         return
 
@@ -1184,11 +1184,12 @@ async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
-        "୨ৎ la rifa ha sido cancelada.\n\n"
-        f"🎟️ participantes reembolsados: {len(participantes)}\n"
-        "💸 sus kooins fueron devueltos.\n\n"
-        "ya puedes iniciar una nueva rifa cuando quieras. 🐨"
+        "⠀⠀⠀\n"
+        "๑ la rifa ha sido cancelada.\n\n"
+        f"💸 participantes reembolsados: {len(participantes)}\n"
+        "sus kooins fueron devueltos.\n\n"
+        "ya puedes iniciar una nueva rifa cuando quieras."
+        "⠀⠀⠀\n"
     )
 
 # --- MAIN ---
