@@ -847,7 +847,7 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⠀⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n\n"
+        "⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
         "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
@@ -989,7 +989,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await query.message.reply_text(
             f"    \n"
-            f"    ¡koya te ha encontrado un número!\n"
+            f"⠀⠀⠀¡koya te ha encontrado un número!\n"
             f"    ♡    {username}\n"
             f"    ❀    #{numero:04d}\n"
             f"    mucha suerte...\n"
@@ -1035,7 +1035,7 @@ async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     participantes = cur.fetchall()
 
     mensaje = (
-        "⠀⠀⠀ 𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n\n"
+        "⠀⠀⠀ 𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
         f"⠀⠀⠀⋆ . números: {len(participantes)}/{cantidad}\n\n"
@@ -1126,8 +1126,9 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "⠀⠀⠀ ⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n"
-        "⠀⠀⠀✿ ¡el sorteo ha comenzado!\n"
+        f"⠀⠀⠀"
+        f"⠀⠀⠀ 𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n"
+        f"⠀⠀⠀✿ ¡el sorteo ha comenzado!\n"
         f"⠀⠀⠀⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
         f"⠀⠀⠀๑ ¡{ganador_username} ha ganado!\n"
         f"⠀⠀⠀๑ premio: {premio_robux} robux\n"
@@ -1196,6 +1197,46 @@ async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀⠀"
     )
 
+# --- GANADORES DE ROBUX (solo admin) ---
+async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    cur.execute("""
+        SELECT username, robux, fecha
+        FROM ganadores_robux
+        ORDER BY fecha ASC
+    """)
+
+    ganadores = cur.fetchall()
+
+    if not ganadores:
+        await update.message.reply_text(
+            "todavía no hay ganadores de robus. ¡admins, no sean tacaños!"
+        )
+        return
+
+    mensaje = (
+        "⠀⠀⠀ ⠀ ⠀⠀NAM'S ROBUX ♡ˎˊ˗\n\n"
+        "historial de ganadores:\n\n"
+    )
+
+    total_robux = 0
+
+    for username, robux, fecha in ganadores:
+        mensaje += f"𖹭 {username} — {robux} robux\n"
+        total_robux += robux
+
+    mensaje += (
+        f"\n"
+        f"⡞⠳⣄⣀⣠⠞✿⢷\n"
+        f"total entregado: {total_robux} robux"
+    )
+
+    await update.message.reply_text(mensaje)
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -1224,6 +1265,7 @@ app.add_handler(CommandHandler("rifa", rifa))
 app.add_handler(CommandHandler("rifainfo", rifainfo))
 app.add_handler(CommandHandler("startrifa", startrifa))
 app.add_handler(CommandHandler("cancelarrifa", cancelarrifa))
+app.add_handler(CommandHandler("ganadoresrobux", ganadoresrobux))
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
