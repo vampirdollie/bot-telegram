@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
-imimport datetime, os, random
+import datetime, os, random
 from zoneinfo import ZoneInfo
 import psycopg2
 
@@ -132,7 +132,6 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⠀⠀⠀"""
     await update.message.reply_text(mensaje)
 
-# --- ABRIR ---
 # --- ABRIR ---
 async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
