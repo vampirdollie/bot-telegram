@@ -834,24 +834,26 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
-keyboard = [
-    [
-        InlineKeyboardButton(
-            "🎟️ conseguir número .ᐟ",
-            callback_data="participar_rifa"
-        )
+    # Botón para conseguir número
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🎟️ conseguir número .ᐟ",
+                callback_data="participar_rifa"
+            )
+        ]
     ]
-]
 
-reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
         "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
         "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
-        f"⠀⠀⠀⋆ . números disponibles:{cantidad}\n\n"
-        "presiona el botón para conseguir tu número. ੭﹕"
+        f"⠀⠀⠀⋆ . números disponibles: {cantidad}\n\n"
+        "presiona el botón para conseguir tu número. ੭﹕",
+        reply_markup=reply_markup
     )
 
 # --- PARTICIPAR EN RIFA ---
