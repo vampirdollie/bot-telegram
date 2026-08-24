@@ -1,11 +1,13 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
-import datetime, os, random
+imimport datetime, os, random
+from zoneinfo import ZoneInfo
 import psycopg2
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 KOALA_CHAT_ID = os.getenv("KOALA_CHAT_ID")
+ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 SUPERADMINS = ["7943521525"]  # solo tú
 
@@ -139,7 +141,7 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mensaje_bloqueo(update)
         return
 
-    hoy = datetime.date.today()
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
 
     if ultima_actualizacion != hoy:
         await update.message.reply_text(
@@ -261,16 +263,29 @@ async def ranking(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- RESET ---
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-    if user_id not in SUPERADMINS:
-        await update.message.reply_text("¡solo la admin puede reiniciar los puntos!")
-        return
-    cur.execute("UPDATE puntos SET score = 0")
-    conn.commit()
-    await update.message.reply_text("se ha reiniciado el ranking, todos vuelven a cero. (╥ ╥)")
 
+    if user_id not in SUPERADMINS:
+        await update.message.reply_text(
+            "¡solo la admin puede reiniciar los puntos!"
+        )
+        return
+
+    # Reiniciar puntos
+    cur.execute("UPDATE puntos SET score = 0")
+
+    # Reiniciar los intentos diarios
+    cur.execute("DELETE FROM usos")
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "se ha reiniciado el ranking y los intentos. "
+        "todos vuelven a cero y pueden jugar nuevamente. (╥ ╥)"
+    )
 # --- SET BOLSAS ---
 async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -291,7 +306,7 @@ async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         global bolsas, ultima_actualizacion
 
         bolsas = {"A": a, "B": b, "C": c}
-        ultima_actualizacion = datetime.date.today()
+        ultima_actualizacion = datetime.datetime.now(ZONA_COLOMBIA).date()
 
         # Guardar configuración en PostgreSQL
         cur.execute("""
