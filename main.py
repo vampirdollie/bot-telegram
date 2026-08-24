@@ -1294,7 +1294,7 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             WHERE user_id = %s
         """, (kooins_pagados, participante_id))
 
-    # Eliminar participantes de la rifa
+    # Eliminar participantes
     cur.execute("""
         DELETE FROM rifa_participantes
         WHERE rifa_id = %s
@@ -1306,14 +1306,20 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WHERE id = %s
     """, (rifa_id,))
 
+    # Limpiar historial de ganadores de Robux
+    cur.execute("""
+        DELETE FROM ganadores_robux
+    """)
+
     conn.commit()
 
     await update.message.reply_text(
-        "🧹 rifa limpiada correctamente.\n\n"
+        "🧹 ⋮ rifas limpiada correctamente.\n\n"
         f"✿ participantes reembolsados: {len(participantes)}\n"
         "✿ sus kooins fueron devueltos.\n"
-        "✿ los datos de la rifa fueron eliminados.\n\n"
-        "el historial de ganadores de robux no fue modificado. 𖹭"
+        "✿ los datos de la rifa fueron eliminados.\n"
+        "✿ el historial de ganadores de Robux fue limpiado.\n\n"
+        "ya puedes iniciar una nueva rifa cuando quieras. 𖹭"
     )
 
 # --- MAIN ---
