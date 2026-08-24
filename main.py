@@ -1220,8 +1220,7 @@ async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     mensaje = (
-        "⠀⠀⠀\n"
-        "historial de ganadores:\n\n"
+        "✿ historial de ganadores:\n\n"
     )
 
     total_robux = 0
