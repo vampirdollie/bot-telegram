@@ -835,11 +835,11 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "⠀⠀⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
-        "୨ৎ ¡la rifa está abierta!\n\n"
-        f"🎟️ Entrada: {costo} kooins\n"
-        f"🐨 Premio: {robux} Robux\n"
-        f"⋆. Números disponibles: {cantidad}\n\n"
+        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
+        f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
+        f"⠀⠀⠀🐨 premio: {robux} robux\n"
+        f"⠀⠀⠀⋆ . números disponibles:{cantidad}\n\n"
         "presiona el botón para conseguir tu número. ੭﹕"
     )
 
