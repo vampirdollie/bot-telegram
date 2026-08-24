@@ -834,6 +834,17 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
+keyboard = [
+    [
+        InlineKeyboardButton(
+            "🎟️ conseguir número .ᐟ",
+            callback_data="participar_rifa"
+        )
+    ]
+]
+
+reply_markup = InlineKeyboardMarkup(keyboard)
+
     await update.message.reply_text(
         "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
         "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
@@ -842,6 +853,142 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀⋆ . números disponibles:{cantidad}\n\n"
         "presiona el botón para conseguir tu número. ੭﹕"
     )
+
+# --- PARTICIPAR EN RIFA ---
+async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    # Bloqueados no pueden participar
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    # Buscar la rifa activa
+    cur.execute("""
+        SELECT id, costo_kooins, premio_robux, cantidad_numeros
+        FROM rifas
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    rifa_actual = cur.fetchone()
+
+    if not rifa_actual:
+        await query.answer(
+            "no hay ninguna rifa activa ahora mismo.",
+            show_alert=True
+        )
+        return
+
+    rifa_id, costo, premio_robux, cantidad_numeros = rifa_actual
+
+    # Comprobar si ya participa
+    cur.execute("""
+        SELECT numero
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+          AND user_id = %s
+    """, (rifa_id, user_id))
+
+    ya_participa = cur.fetchone()
+
+    if ya_participa:
+        await query.answer(
+            f"ya tienes el número #{ya_participa[0]:04d}. 🐨",
+            show_alert=True
+        )
+        return
+
+    # Comprobar kooins
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila_puntos = cur.fetchone()
+    kooins = fila_puntos[0] if fila_puntos else 0
+
+    if kooins < costo:
+        await query.answer(
+            f"necesitas {costo} kooins para participar.",
+            show_alert=True
+        )
+        return
+
+    # Obtener números ya ocupados
+    cur.execute("""
+        SELECT numero
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+    """, (rifa_id,))
+
+    ocupados = {fila[0] for fila in cur.fetchall()}
+
+    disponibles = [
+        numero
+        for numero in range(1, cantidad_numeros + 1)
+        if numero not in ocupados
+    ]
+
+    if not disponibles:
+        await query.answer(
+            "todos los números ya fueron ocupados. 🐨",
+            show_alert=True
+        )
+        return
+
+    # Elegir número aleatorio
+    numero = random.choice(disponibles)
+
+    username = (
+        f"@{query.from_user.username}"
+        if query.from_user.username
+        else query.from_user.first_name
+    )
+
+    # Descontar kooins
+    cur.execute("""
+        UPDATE puntos
+        SET score = score - %s
+        WHERE user_id = %s
+    """, (costo, user_id))
+
+    # Guardar participante
+    cur.execute("""
+        INSERT INTO rifa_participantes
+        (rifa_id, user_id, username, numero, kooins_pagados)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (
+        rifa_id,
+        user_id,
+        username,
+        numero,
+        costo
+    ))
+
+    conn.commit()
+
+    await query.answer(
+        f"¡tu número es #{numero:04d}! 🐨",
+        show_alert=True
+    )
+
+    # Aviso en el chat donde está el botón
+    try:
+        await query.message.reply_text(
+            f"¡Nam te ha encontrado un número!\n"
+            f"          #{numero:04d}\n"
+            f"🍀 mucha suerte..."
+        )
+    except Exception:
+        pass
 
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
@@ -862,6 +1009,12 @@ app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
 app.add_handler(CommandHandler("rifa", rifa))
+app.add_handler(
+    CallbackQueryHandler(
+        participar_rifa,
+        pattern=r"^participar_rifa$"
+    )
+)
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
