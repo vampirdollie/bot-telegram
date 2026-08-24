@@ -988,9 +988,12 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Aviso en el chat donde está el botón
     try:
         await query.message.reply_text(
-            f"¡Nam te ha encontrado un número!\n"
-            f"          #{numero:04d}\n"
-            f"🍀 mucha suerte..."
+            f"    \n"
+            f"¡koya te ha encontrado un número!\n"
+            f"    ♡    {username}\n"
+            f"    ❀    #{numero:04d}\n"
+            f"    mucha suerte...\n"
+            f"    "
         )
     except Exception:
         pass
@@ -1123,12 +1126,13 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
-        "⠀⠀⠀🎲 ¡el sorteo ha comenzado!\n\n"
-        f"⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
-        f"🏆 ¡{ganador_username} ha ganado!\n"
-        f"premio: {premio_robux} robux\n\n"
-        "gracias por participar. (｡- .•)"
+        "⠀⠀⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n"
+        "⠀⠀⠀✿ ¡el sorteo ha comenzado!\n\n"
+        f"⠀⠀⠀⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
+        f"⠀⠀⠀๑ ¡{ganador_username} ha ganado!\n"
+        f"⠀⠀⠀๑ premio: {premio_robux} robux\n\n"
+        "gracias por participar. (｡- .•)\n"
+        f"⠀⠀⠀"
     )
 
 # --- CANCELAR RIFA (solo admin) ---
@@ -1186,10 +1190,10 @@ async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "⠀⠀⠀\n"
         "๑ la rifa ha sido cancelada.\n\n"
-        f"💸 participantes reembolsados: {len(participantes)}\n"
-        "sus kooins fueron devueltos.\n\n"
-        "ya puedes iniciar una nueva rifa cuando quieras."
-        "⠀⠀⠀\n"
+        f" ✿ participantes reembolsados: {len(participantes)}\n"
+        ". . . sus kooins fueron devueltos.\n\n"
+        "ya puedes iniciar una nueva rifa cuando quieras.\n"
+        "⠀⠀⠀"
     )
 
 # --- MAIN ---
