@@ -344,50 +344,120 @@ async def setbolsas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- KOOINS (solo admin) ---
 async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id not in SUPERADMINS:
-        await update.message.reply_text("¡alto ahí, velocista! este comando solo lo puede usar la admin.")
+        await update.message.reply_text(
+            "¡alto ahí, velocista! este comando solo lo puede usar la admin."
+        )
         return
+
     if len(context.args) < 2:
-        await update.message.reply_text("usa el formato /kooins <cantidad> @usuario")
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/kooins <cantidad> @usuario\n\n"
+            "ejemplos:\n"
+            "/kooins 50 @usuario → sumar 50 kooins\n"
+            "/kooins -20 @usuario → restar 20 kooins"
+        )
         return
+
     try:
         cantidad = int(context.args[0])
         objetivo = context.args[1]
-        if objetivo.startswith("@"):
-            # Buscar el user_id real en la tabla usando el username
-            cur.execute("SELECT user_id FROM puntos WHERE username=%s", (objetivo,))
-            row = cur.fetchone()
-            if not row:
-                await update.message.reply_text("ese usuario aún no ha jugado, no puedo darle kooins. ૮◞ ◟ ა")
-                return
-            target_id = row[0]   # usamos el user_id real
-            username = objetivo
-        else:
-            # si se pasa un ID numérico directamente
-            target_id = objetivo
-            username = f"ID:{objetivo}"
 
-        if esta_bloqueado(target_id):
+        if cantidad == 0:
             await update.message.reply_text(
-                "no puedes entregar kooins a este usuario."
+                "la cantidad no puede ser 0."
             )
             return
 
+        if objetivo.startswith("@"):
+            # Buscar el user_id real usando el username
+            cur.execute(
+                "SELECT user_id, score FROM puntos WHERE username=%s",
+                (objetivo,)
+            )
+            row = cur.fetchone()
+
+            if not row:
+                await update.message.reply_text(
+                    "ese usuario aún no ha jugado, "
+                    "no puedo darle kooins. ૮◞ ◟ ა"
+                )
+                return
+
+            target_id = row[0]
+            saldo_actual = row[1]
+            username = objetivo
+
+        else:
+            # Si se pasa un ID numérico directamente
+            target_id = objetivo
+
+            cur.execute(
+                "SELECT score, username FROM puntos WHERE user_id=%s",
+                (target_id,)
+            )
+            row = cur.fetchone()
+
+            if not row:
+                await update.message.reply_text(
+                    "ese usuario aún no ha jugado, "
+                    "no puedo modificar sus kooins. ૮◞ ◟ ა"
+                )
+                return
+
+            saldo_actual = row[0]
+            username = row[1] or f"ID:{objetivo}"
+
+        # Bloqueados no pueden recibir ni perder kooins mediante este comando
+        if esta_bloqueado(target_id):
+            await update.message.reply_text(
+                "no puedes modificar los kooins de este usuario."
+            )
+            return
+
+        # Evitar que el saldo quede negativo
+        nuevo_saldo = saldo_actual + cantidad
+
+        if nuevo_saldo < 0:
+            await update.message.reply_text(
+                f"{username} tiene actualmente {saldo_actual} kooins.\n"
+                f"no puedes restarle {abs(cantidad)} porque "
+                "el saldo quedaría negativo."
+            )
+            return
+
+        # Actualizar saldo
         cur.execute(
-            "UPDATE puntos SET score = score + %s, username = %s WHERE user_id = %s",
-            (cantidad, username, target_id)
+            """
+            UPDATE puntos
+            SET score = %s,
+                username = %s
+            WHERE user_id = %s
+            """,
+            (nuevo_saldo, username, target_id)
         )
+
         conn.commit()
-        # Consultar acumulado correcto
-        cur.execute("SELECT score FROM puntos WHERE user_id=%s", (target_id,))
-        row = cur.fetchone()
-        acumulado = row[0] if row else cantidad
-        await update.message.reply_text(
-            f"¡se sumaron {cantidad} kooins a {username}!\n"
-            f"ahora tiene {acumulado} kooins. ٩(ˊᗜˋ*)و"
-        )
+
+        if cantidad > 0:
+            await update.message.reply_text(
+                f"¡se sumaron {cantidad} kooins a {username}!\n"
+                f"ahora tiene {nuevo_saldo} kooins. ٩(ˊᗜˋ*)و"
+            )
+        else:
+            await update.message.reply_text(
+                f"se restaron {abs(cantidad)} kooins a {username}.\n"
+                f"ahora tiene {nuevo_saldo} kooins. (◞‸◟,)"
+            )
+
     except ValueError:
-        await update.message.reply_text("¡ups! la cantidad debe ser un número entero.")
+        await update.message.reply_text(
+            "¡ups! la cantidad debe ser un número entero.\n\n"
+            "ejemplo: /kooins 50 @usuario\n"
+            "o: /kooins -20 @usuario"
+        )
 
 # --- OBSEQUIO (solo admin) ---
 
@@ -1005,7 +1075,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await query.message.reply_text(
             f"    \n"
-            f"⠀¡koya te ha encontrado un número!\n"
+            f"¡koya te ha encontrado un número!\n"
             f"    ♡    {username}\n"
             f"    ❀    #{numero:04d}\n"
             f"    mucha suerte...\n"
@@ -1142,8 +1212,8 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        f"⠀⠀⠀"
-        f"⠀⠀⠀ 𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n"
+        f"⠀⠀⠀\n"
+        f"⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n"
         f"⠀⠀⠀✿ ¡el sorteo ha comenzado!\n"
         f"⠀⠀⠀⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
         f"⠀⠀⠀๑ ¡{ganador_username} ha ganado!\n"
