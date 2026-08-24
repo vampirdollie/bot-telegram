@@ -847,7 +847,7 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⠀⠀⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n\n"
         "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
@@ -989,7 +989,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await query.message.reply_text(
             f"    \n"
-            f"¡koya te ha encontrado un número!\n"
+            f"    ¡koya te ha encontrado un número!\n"
             f"    ♡    {username}\n"
             f"    ❀    #{numero:04d}\n"
             f"    mucha suerte...\n"
@@ -1035,7 +1035,7 @@ async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     participantes = cur.fetchall()
 
     mensaje = (
-        "⠀⠀⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀⠀ 𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
         f"⠀⠀⠀⋆ . números: {len(participantes)}/{cantidad}\n\n"
@@ -1126,12 +1126,12 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "⠀⠀⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n"
-        "⠀⠀⠀✿ ¡el sorteo ha comenzado!\n\n"
+        "⠀⠀⠀ ⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 ♡\n"
+        "⠀⠀⠀✿ ¡el sorteo ha comenzado!\n"
         f"⠀⠀⠀⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
         f"⠀⠀⠀๑ ¡{ganador_username} ha ganado!\n"
-        f"⠀⠀⠀๑ premio: {premio_robux} robux\n\n"
-        "gracias por participar. (｡- .•)\n"
+        f"⠀⠀⠀๑ premio: {premio_robux} robux\n"
+        "⠀⠀⠀gracias por participar. (｡- .•)\n"
         f"⠀⠀⠀"
     )
 
