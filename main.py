@@ -847,8 +847,9 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
-        "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
+        "⠀⠀\n"
+        f"⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
+        f"⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
         f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
         f"⠀⠀⠀🐨 premio: {robux} robux\n"
         f"⠀⠀⠀⋆ . números disponibles: {cantidad}\n\n"
@@ -1219,7 +1220,7 @@ async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     mensaje = (
-        "⠀⠀⠀ ⠀ ⠀⠀NAM'S ROBUX ♡ˎˊ˗\n\n"
+        "⠀⠀⠀\n"
         "historial de ganadores:\n\n"
     )
 
