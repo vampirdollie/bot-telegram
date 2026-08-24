@@ -774,6 +774,75 @@ async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif texto.startswith(".juegoinfo"):
         await juegoinfo(update, context)
 
+# --- RIFA (solo admin) ---
+async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        await update.message.reply_text(
+            "¡solo los admin autorizados pueden iniciar una rifa!"
+        )
+        return
+
+    if len(context.args) != 3:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/rifa <kooins> <robux> <numeros>\n\n"
+            "ejemplo:\n"
+            "/rifa 30 20 10"
+        )
+        return
+
+    try:
+        costo = int(context.args[0])
+        robux = int(context.args[1])
+        cantidad = int(context.args[2])
+
+        if costo <= 0 or robux <= 0 or cantidad <= 0:
+            raise ValueError
+
+    except ValueError:
+        await update.message.reply_text(
+            "los tres valores deben ser números enteros mayores que 0."
+        )
+        return
+
+    # Comprobar si ya hay una rifa activa
+    cur.execute("""
+        SELECT id
+        FROM rifas
+        WHERE activa = TRUE
+        LIMIT 1
+    """)
+
+    if cur.fetchone():
+        await update.message.reply_text(
+            "ya hay una rifa activa. "( – ⌓ – )\n"
+            "termina esa antes de iniciar otra."
+        )
+        return
+
+    # Crear la nueva rifa
+    cur.execute("""
+        INSERT INTO rifas
+        (costo_kooins, premio_robux, cantidad_numeros, activa)
+        VALUES (%s, %s, %s, TRUE)
+        RETURNING id
+    """, (costo, robux, cantidad))
+
+    rifa_id = cur.fetchone()[0]
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "⠀⠀⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "୨ৎ ¡la rifa está abierta!\n\n"
+        f"🎟️ Entrada: {costo} kooins\n"
+        f"🐨 Premio: {robux} Robux\n"
+        f"⋆. Números disponibles: {cantidad}\n\n"
+        "presiona el botón para conseguir tu número. ੭﹕"
+    )
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -792,6 +861,7 @@ app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
+   app.add_handler(CommandHandler("rifa", rifa))
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
