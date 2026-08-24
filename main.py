@@ -722,7 +722,7 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Cambiar el texto de la imagen por el resultado
     await query.edit_message_caption(
         caption=(
-            f"🐨 ¡{username} lo ha atrapado!\n\n"
+            f"๋࣭ ⭑ ¡{username} lo ha atrapado!\n"
             f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
         )
     )
@@ -817,7 +817,7 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if cur.fetchone():
         await update.message.reply_text(
-            "ya hay una rifa activa. "( – ⌓ – )\n"
+            "ya hay una rifa activa. ( – ⌓ – )\n"
             "termina esa antes de iniciar otra."
         )
         return
