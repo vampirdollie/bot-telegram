@@ -1006,7 +1006,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await query.message.reply_text(
             f"    \n"
-            f"⠀⠀⠀¡koya te ha encontrado un número!\n"
+            f"⠀¡koya te ha encontrado un número!\n"
             f"    ♡    {username}\n"
             f"    ❀    #{numero:04d}\n"
             f"    mucha suerte...\n"
@@ -1222,26 +1222,25 @@ async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     cur.execute("""
-        SELECT username, robux, fecha
+        SELECT user_id, username, SUM(robux) AS total_robux
         FROM ganadores_robux
-        ORDER BY fecha ASC
+        GROUP BY user_id, username
+        ORDER BY total_robux DESC
     """)
 
     ganadores = cur.fetchall()
 
     if not ganadores:
         await update.message.reply_text(
-            "todavía no hay ganadores de robus. ¡admins, no sean tacaños!"
+            "todavía no hay ganadores de robux. ¡admins, no sean tacaños!"
         )
         return
 
-    mensaje = (
-        "✿ historial de ganadores:\n\n"
-    )
+    mensaje = "✿ historial de ganadores:\n\n"
 
     total_robux = 0
 
-    for username, robux, fecha in ganadores:
+    for ganador_id, username, robux in ganadores:
         mensaje += f"𖹭 {username} — {robux} robux\n"
         total_robux += robux
 
@@ -1252,6 +1251,70 @@ async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(mensaje)
+
+# --- LIMPIAR RIFA (solo admin) ---
+async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar la rifa más reciente
+    cur.execute("""
+        SELECT id
+        FROM rifas
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    rifa_actual = cur.fetchone()
+
+    if not rifa_actual:
+        await update.message.reply_text(
+            "no hay ninguna rifa para limpiar. (っ˕ -｡)"
+        )
+        return
+
+    rifa_id = rifa_actual[0]
+
+    # Buscar participantes y lo que pagaron
+    cur.execute("""
+        SELECT user_id, kooins_pagados
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+    """, (rifa_id,))
+
+    participantes = cur.fetchall()
+
+    # Devolver los kooins
+    for participante_id, kooins_pagados in participantes:
+        cur.execute("""
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+        """, (kooins_pagados, participante_id))
+
+    # Eliminar participantes de la rifa
+    cur.execute("""
+        DELETE FROM rifa_participantes
+        WHERE rifa_id = %s
+    """, (rifa_id,))
+
+    # Eliminar la rifa
+    cur.execute("""
+        DELETE FROM rifas
+        WHERE id = %s
+    """, (rifa_id,))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "🧹 rifa limpiada correctamente.\n\n"
+        f"✿ participantes reembolsados: {len(participantes)}\n"
+        "✿ sus kooins fueron devueltos.\n"
+        "✿ los datos de la rifa fueron eliminados.\n\n"
+        "el historial de ganadores de robux no fue modificado. 𖹭"
+    )
 
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
@@ -1281,6 +1344,7 @@ app.add_handler(CommandHandler("rifa", rifa))
 app.add_handler(CommandHandler("rifainfo", rifainfo))
 app.add_handler(CommandHandler("startrifa", startrifa))
 app.add_handler(CommandHandler("cancelarrifa", cancelarrifa))
+app.add_handler(CommandHandler("limpiarrifa", limpiarrifa))
 app.add_handler(CommandHandler("ganadoresrobux", ganadoresrobux))
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
