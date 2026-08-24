@@ -838,7 +838,7 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
-                "🎟️ conseguir número .ᐟ",
+                "˗ˏˋ ꒰ 🎟️ ꒱ ˎˊ˗",
                 callback_data="participar_rifa"
             )
         ]
@@ -859,11 +859,9 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- PARTICIPAR EN RIFA ---
 async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
 
     user_id = str(query.from_user.id)
 
-    # Bloqueados no pueden participar
     if user_id in BLOQUEADOS:
         await query.answer(
             "no puedes participar en esta dinámica.",
@@ -933,18 +931,23 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ocupados = {fila[0] for fila in cur.fetchall()}
 
-    disponibles = [
-        numero
-        for numero in range(1, cantidad_numeros + 1)
-        if numero not in ocupados
-    ]
-
-    if not disponibles:
+    # La cantidad configurada es el máximo de participantes,
+    # no el máximo del número.
+    if len(ocupados) >= cantidad_numeros:
         await query.answer(
-            "todos los números ya fueron ocupados. 🐨",
+            "ya se ocuparon todos los números disponibles para esta rifa. 🐨",
             show_alert=True
         )
         return
+
+    # Generar un número aleatorio entre 0001 y 9999
+    disponibles = [
+        numero
+        for numero in range(1, 10000)
+        if numero not in ocupados
+    ]
+
+    numero = random.choice(disponibles)
 
     # Elegir número aleatorio
     numero = random.choice(disponibles)
@@ -992,6 +995,202 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+# --- INFO RIFA (solo admin) ---
+async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar la rifa activa
+    cur.execute("""
+        SELECT id, costo_kooins, premio_robux, cantidad_numeros
+        FROM rifas
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    rifa_actual = cur.fetchone()
+
+    if not rifa_actual:
+        await update.message.reply_text(
+            "no hay ninguna rifa activa en este momento. ( – ⌓ – )"
+        )
+        return
+
+    rifa_id, costo, robux, cantidad = rifa_actual
+
+    # Buscar participantes
+    cur.execute("""
+        SELECT username, numero
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+        ORDER BY numero ASC
+    """, (rifa_id,))
+
+    participantes = cur.fetchall()
+
+    mensaje = (
+        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
+        f"⠀⠀⠀🐨 premio: {robux} robux\n"
+        f"⠀⠀⠀⋆ . números: {len(participantes)}/{cantidad}\n\n"
+    )
+
+    if not participantes:
+        mensaje += (
+            "todavía nadie ha conseguido un número.\n"
+            "(,,•᷄﹏‎•᷅,,)"
+        )
+    else:
+        for username, numero in participantes:
+            mensaje += f"#{numero:04d} — {username}\n"
+
+    await update.message.reply_text(mensaje)
+
+# --- START RIFA (solo admin) ---
+async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar la rifa activa
+    cur.execute("""
+        SELECT id, premio_robux
+        FROM rifas
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    rifa_actual = cur.fetchone()
+
+    if not rifa_actual:
+        await update.message.reply_text(
+            "no hay ninguna rifa activa. ( – ⌓ – )"
+        )
+        return
+
+    rifa_id, premio_robux = rifa_actual
+
+    # Buscar participantes
+    cur.execute("""
+        SELECT user_id, username, numero
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+    """, (rifa_id,))
+
+    participantes = cur.fetchall()
+
+    if not participantes:
+        await update.message.reply_text(
+            "todavía nadie ha conseguido un número. ૮ ˶ᵔ ᵕ ᵔ˶ ა\n"
+            "la rifa no puede comenzar."
+        )
+        return
+
+    # Elegir un participante al azar
+    ganador = random.choice(participantes)
+
+    ganador_id, ganador_username, numero_ganador = ganador
+
+    # Guardar ganador y cerrar la rifa
+    cur.execute("""
+        UPDATE rifas
+        SET activa = FALSE,
+            ganador_id = %s,
+            ganador_username = %s
+        WHERE id = %s
+    """, (
+        ganador_id,
+        ganador_username,
+        rifa_id
+    ))
+
+    # Registrar el premio de Robux
+    cur.execute("""
+        INSERT INTO ganadores_robux
+        (user_id, username, robux)
+        VALUES (%s, %s, %s)
+    """, (
+        ganador_id,
+        ganador_username,
+        premio_robux
+    ))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "⠀⠀⠀🎲 ¡el sorteo ha comenzado!\n\n"
+        f"⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
+        f"🏆 ¡{ganador_username} ha ganado!\n"
+        f"premio: {premio_robux} robux\n\n"
+        "gracias por participar. (｡- .•)"
+    )
+
+# --- CANCELAR RIFA (solo admin) ---
+async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar la rifa activa
+    cur.execute("""
+        SELECT id
+        FROM rifas
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    rifa_actual = cur.fetchone()
+
+    if not rifa_actual:
+        await update.message.reply_text(
+            "no hay ninguna rifa activa para cancelar. (っ˕ -｡)"
+        )
+        return
+
+    rifa_id = rifa_actual[0]
+
+    # Buscar participantes y lo que pagaron
+    cur.execute("""
+        SELECT user_id, kooins_pagados
+        FROM rifa_participantes
+        WHERE rifa_id = %s
+    """, (rifa_id,))
+
+    participantes = cur.fetchall()
+
+    # Devolver los kooins
+    for participante_id, kooins_pagados in participantes:
+        cur.execute("""
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+        """, (kooins_pagados, participante_id))
+
+    # Cerrar la rifa
+    cur.execute("""
+        UPDATE rifas
+        SET activa = FALSE
+        WHERE id = %s
+    """, (rifa_id,))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "⠀⠀⠀ ⠀ ⠀⠀NAM'S LUCKY NUMBER ♡ˎˊ˗\n\n"
+        "୨ৎ la rifa ha sido cancelada.\n\n"
+        f"🎟️ participantes reembolsados: {len(participantes)}\n"
+        "💸 sus kooins fueron devueltos.\n\n"
+        "ya puedes iniciar una nueva rifa cuando quieras. 🐨"
+    )
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -1011,6 +1210,9 @@ app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
 app.add_handler(CommandHandler("rifa", rifa))
+app.add_handler(CommandHandler("rifainfo", rifainfo))
+app.add_handler(CommandHandler("startrifa", startrifa))
+app.add_handler(CommandHandler("cancelarrifa", cancelarrifa))
 app.add_handler(
     CallbackQueryHandler(
         participar_rifa,
