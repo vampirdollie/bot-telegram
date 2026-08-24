@@ -7,6 +7,7 @@ import psycopg2
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 KOALA_CHAT_ID = os.getenv("KOALA_CHAT_ID")
+RIFA_CHAT_ID = os.getenv("RIFA_CHAT_ID")
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 SUPERADMINS = ["7943521525"]  # solo tú
@@ -846,15 +847,30 @@ async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        "⠀⠀\n"
-        f"⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
-        f"⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
-        f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
-        f"⠀⠀⠀🐨 premio: {robux} robux\n"
-        f"⠀⠀⠀⋆ . números disponibles: {cantidad}\n\n"
-        "presiona el botón para conseguir tu número. ੭﹕",
+    # Enviar la rifa al grupo
+    if not RIFA_CHAT_ID:
+        await update.message.reply_text(
+            "grupo de rifas no configurado."
+        )
+        return
+
+    await context.bot.send_message(
+        chat_id=int(RIFA_CHAT_ID),
+        text=(
+            "⠀⠀\n"
+            "⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n\n"
+            "⠀⠀ ⠀⠀ ୨ৎ ¡nueva rifa abierta!\n\n"
+            f"⠀⠀⠀🎟️ valor entrada: {costo} kooins\n"
+            f"⠀⠀⠀🐨 premio: {robux} robux\n"
+            f"⠀⠀⠀⋆ . números disponibles: {cantidad}\n\n"
+            "presiona el botón para conseguir tu número. ੭﹕"
+        ),
         reply_markup=reply_markup
+    )
+
+    # Confirmación privada para la admin
+    await update.message.reply_text(
+        "¡rifa enviada al grupo! 🎟️"
     )
 
 # --- PARTICIPAR EN RIFA ---
