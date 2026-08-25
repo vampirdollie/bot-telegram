@@ -566,27 +566,27 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (lote, target_id, username, premio)
         )
 
-# Sumar el premio a sus kooins
-cur.execute(
-    """
-    UPDATE puntos
-    SET score = score + %s
-    WHERE user_id = %s
-    """,
-    (premio, target_id)
-)
+        # Sumar el premio a sus kooins
+        cur.execute(
+            """
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+            """,
+            (premio, target_id)
+        )
 
-# Registrar movimiento en bankooins
-cur.execute(
-    """
-    INSERT INTO movimientos_kooins
-    (user_id, cantidad, tipo)
-    VALUES (%s, %s, %s)
-    """,
-    (target_id, premio, "obsequio")
-)
+        # Registrar movimiento en bankooins
+        cur.execute(
+            """
+            INSERT INTO movimientos_kooins
+            (user_id, cantidad, tipo)
+            VALUES (%s, %s, %s)
+            """,
+            (target_id, premio, "obsequio")
+        )
 
-conn.commit()
+        conn.commit()
 
         conejito = " 🐰" if premio == premio_mayor else ""
 
@@ -612,8 +612,6 @@ conn.commit()
         f"📭 No entregados: {no_entregados}\n\n"
         "¡Esperamos que todos disfruten su obsequio! 𖹭"
     )
-
-
 # --- VER OBSEQUIO (solo admin) ---
 
 async def verobsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
