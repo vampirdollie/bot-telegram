@@ -2461,138 +2461,95 @@ async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀⠀ya puedes iniciar otro cuando quieras. 𖹭"
     )
 
-async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-
-        # Saldo actual
-        cur.execute(
-            "SELECT score FROM puntos WHERE user_id = %s",
-            (user_id,)
-        )
-        resultado = cur.fetchone()
-
-        if resultado is None:
-            await update.message.reply_text(
-                "(っ˕ -｡) 𝗓 𐰁 Aún no tienes kooins registrados."
-            )
-            cur.close()
-            conn.close()
-            return
-
-        saldo = resultado[0]
-
-        # Totales agrupados por dinámica
-        cur.execute("""
-            SELECT tipo, SUM(cantidad)
-            FROM movimientos_kooins
-            WHERE user_id = %s
-            GROUP BY tipo
-        """, (user_id,))
-
-        movimientos = dict(cur.fetchall())
-
-        # Ganados
-        ganados = sum(
-            cantidad for cantidad in movimientos.values()
-            if cantidad > 0
-        )
-
-        # Gastados
-        gastados = sum(
-            cantidad for cantidad in movimientos.values()
-            if cantidad < 0
-        )
-
-        # Construir mensaje
-        mensaje = (
-            "⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱ \n\n"
-        )
-
-        tipos = [
-            ("juego_diario", "𖹭 juego diario"),
-            ("obsequio", "𖹭 obsequios"),
-            ("koala", "𖹭 koalas"),
-            ("arriesgar", "𖹭 arriesgar"),
-            ("jackpot", "𖹭 jackpot"),
-            ("admin", "𖹭 admins"),
-            ("rifa", "🎟️ rifas")
-        ]
-
-        for tipo, nombre in tipos:
-            cantidad = movimientos.get(tipo, 0)
-
-            if cantidad != 0:
-                signo = "+" if cantidad > 0 else ""
-                mensaje += f"{nombre}: {signo}{cantidad} kooins\n"
-
-        mensaje += (
-            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
-            f"✿ kooins ganados: +{ganados}\n"
-            f"✿ kooins gastados: {gastados}\n"
-            f"✿ saldo actual: {saldo} kooins"
-        )
-
-        await update.message.reply_text(mensaje)
-
-        cur.close()
-        conn.close()
-
-    except Exception as e:
-        print(f"ERROR EN /bankooins: {e}")
-        await update.message.reply_text(
-            "❌ Ocurrió un error al consultar tus bankooins."
-        )
-
-# --- BANKOOINS (solo admin) ---
+# --- BANKOOINS ---
 async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
-        return
+    # ==========================================
+    # CONSULTAR A OTRO USUARIO (SOLO ADMIN)
+    # ==========================================
 
-    if len(context.args) != 1:
+    if len(context.args) == 1:
+
+        if user_id not in SUPERADMINS:
+            await update.message.reply_text(
+                "solo los admins pueden consultar los bankooins de otros usuarios."
+            )
+            return
+
+        objetivo = context.args[0]
+
+        if not objetivo.startswith("@"):
+            await update.message.reply_text(
+                "debes indicar el usuario con @.\n"
+                "ejemplo: /bankooins @usuario"
+            )
+            return
+
+        cur.execute(
+            """
+            SELECT user_id, username, score
+            FROM puntos
+            WHERE username = %s
+            """,
+            (objetivo,)
+        )
+
+        fila = cur.fetchone()
+
+        if not fila:
+            await update.message.reply_text(
+                "ese usuario todavía no está registrado en el bot."
+            )
+            return
+
+        target_id, username, saldo_actual = fila
+
+    # ==========================================
+    # CONSULTAR LOS PROPIOS BANKOOINS
+    # ==========================================
+
+    elif len(context.args) == 0:
+
+        target_id = user_id
+
+        cur.execute(
+            """
+            SELECT username, score
+            FROM puntos
+            WHERE user_id = %s
+            """,
+            (target_id,)
+        )
+
+        fila = cur.fetchone()
+
+        if not fila:
+            await update.message.reply_text(
+                "(っ˕ -｡) 𝗓 𐰁 Aún no tienes kooins registrados."
+            )
+            return
+
+        username, saldo_actual = fila
+
+    # ==========================================
+    # FORMATO INCORRECTO
+    # ==========================================
+
+    else:
+
         await update.message.reply_text(
             "usa el formato:\n"
-            "/bankooins @usuario\n\n"
-            "ejemplo:\n"
+            "/bankooins\n\n"
+            "o, si eres admin:\n"
             "/bankooins @usuario"
         )
         return
 
-    objetivo = context.args[0]
+    # ==========================================
+    # BUSCAR HISTORIAL
+    # ==========================================
 
-    if not objetivo.startswith("@"):
-        await update.message.reply_text(
-            "debes indicar el usuario con @.\n"
-            "ejemplo: /bankooins @usuario"
-        )
-        return
-
-    # Buscar usuario
-    cur.execute(
-        """
-        SELECT user_id, username, score
-        FROM puntos
-        WHERE username = %s
-        """,
-        (objetivo,)
-    )
-
-    fila = cur.fetchone()
-
-    if not fila:
-        await update.message.reply_text(
-            "ese usuario todavía no está registrado en el bot."
-        )
-        return
-
-    target_id, username, saldo_actual = fila
-
-    # Buscar historial
     cur.execute(
         """
         SELECT cantidad, tipo, fecha
@@ -2606,21 +2563,32 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     movimientos = cur.fetchall()
 
     mensaje = (
-        f"⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱ \n\n" 
+        f"⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱\n\n"
         f"𖹭 usuario: {username}\n"
         f"𖹭 saldo actual: {saldo_actual} kooins\n\n"
     )
 
     if not movimientos:
+
         mensaje += (
             "✿ todavía no tiene movimientos registrados."
         )
 
     else:
+
         mensaje += "✿ historial de movimientos:\n\n"
 
+        ganados = 0
+        gastados = 0
+
         for cantidad, tipo, fecha in movimientos:
+
             signo = "+" if cantidad > 0 else ""
+
+            if cantidad > 0:
+                ganados += cantidad
+            else:
+                gastados += cantidad
 
             fecha_formateada = fecha.strftime(
                 "%d/%m/%Y %H:%M"
@@ -2630,6 +2598,13 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"𖹭 {signo}{cantidad} kooins\n"
                 f"   └ {tipo} · {fecha_formateada}\n"
             )
+
+        mensaje += (
+            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            f"✿ kooins ganados: +{ganados}\n"
+            f"✿ kooins gastados: {gastados}\n"
+            f"✿ saldo actual: {saldo_actual} kooins"
+        )
 
     await update.message.reply_text(mensaje)
 
