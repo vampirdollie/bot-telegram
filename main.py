@@ -205,44 +205,48 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     user_id = str(query.from_user.id)
+
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
         return
-    username = f"@{query.from_user.username}" if query.from_user.username else f"ID:{user_id}"
+
+    username = (
+        f"@{query.from_user.username}"
+        if query.from_user.username
+        else f"ID:{user_id}"
+    )
+
     premio = int(query.data)
+
     cur.execute("""
-    INSERT INTO puntos (user_id, username, score)
-    VALUES (%s, %s, %s)
-    ON CONFLICT (user_id) DO UPDATE
-    SET score = puntos.score + EXCLUDED.score,
-        username = EXCLUDED.username
+        INSERT INTO puntos (user_id, username, score)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id) DO UPDATE
+        SET score = puntos.score + EXCLUDED.score,
+            username = EXCLUDED.username
     """, (user_id, username, premio))
-    conn.commit()
+
+    # Registrar movimiento en bankooins
     cur.execute("""
-    INSERT INTO puntos (user_id, username, score)
-    VALUES (%s, %s, %s)
-    ON CONFLICT (user_id) DO UPDATE
-    SET score = puntos.score + EXCLUDED.score,
-        username = EXCLUDED.username
-""", (user_id, username, premio))
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        user_id,
+        premio,
+        "juego_diario"
+    ))
 
-# Registrar movimiento en el bankooins
-cur.execute("""
-    INSERT INTO movimientos_kooins
-    (user_id, cantidad, tipo)
-    VALUES (%s, %s, %s)
-""", (
-    user_id,
-    premio,
-    "juego_diario"
-))
+    conn.commit()
 
-conn.commit()
     max_valor = max(bolsas.values())
     extra = " 🐰" if premio == max_valor else ""
-    await query.edit_message_caption(caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )")
 
+    await query.edit_message_caption(
+        caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )"
+    )
 # --- TOTAL ---
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
