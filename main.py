@@ -305,6 +305,9 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Reiniciar los intentos diarios
     cur.execute("DELETE FROM usos")
 
+    # Reiniciar historial de Bankooins
+    cur.execute("DELETE FROM movimientos_kooins")
+
     conn.commit()
 
     await update.message.reply_text(
