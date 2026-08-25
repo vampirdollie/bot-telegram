@@ -2135,14 +2135,13 @@ async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=int(RIFA_CHAT_ID),
         text=(
             "⠀⠀⠀\n"
-            "⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
+            "⠀⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
             "⠀⠀⠀ el pozo ha sido abierto...\n\n"
             f"⠀⠀⠀🎟️ entrada: {costo} kooins\n"
-            f"⠀⠀⠀🐇 cortesía de cooky: {aporte_admin} kooins\n\n"
+            f"⠀⠀⠀🐰ྀི coortesía: {aporte_admin} kooins\n\n"
             f"⠀⠀⠀๑ pozo actual: {aporte_admin} kooins\n"
-            "⠀⠀⠀๑ participantes: 0\n\n"
-            "⠀⠀⠀cada personita tendrá una sola entrada.\n"
-            "⠀⠀⠀¿te atreves a dejar tu fortuna aquí? 𖹭"
+            "⠀⠀⠀cada personita tiene una entrada.\n"
+            "⠀⠀¿te atreves a dejar tu fortuna aquí? 𖹭"
         ),
         reply_markup=reply_markup
     )
@@ -2287,7 +2286,8 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         await query.message.reply_text(
             f"⠀⠀⠀\n"
-            f"⠀⠀⠀♡ {username} ha guardado sus kooins en el pozo.\n\n"
+            f"⠀⠀⠀𖹭 {username} ha guardado
+            f"⠀⠀⠀sus kooins en el pozo.\n\n"
             f"⠀⠀⠀🎟️ aporte: {costo} kooins\n"
             f"⠀⠀⠀๑ pozo actual: {nuevo_pozo} kooins\n"
             f"⠀⠀⠀๑ participantes: {participantes}\n\n"
@@ -2379,8 +2379,8 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"⠀⠀⠀\n"
-        f"⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
-        f"⠀⠀⠀๑ el pozo ha encontrado a su ganador...\n\n"
+        f"⠀⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
+        f"⠀⠀⠀๑ el pozo ha encontrado un ganador...\n\n"
         f"⠀⠀⠀𖹭 {ganador_username}\n\n"
         f"⠀⠀⠀๑ premio: {pozo} kooins\n"
         f"⠀⠀⠀¡todo el pozo es tuyo!\n"
@@ -2456,7 +2456,7 @@ async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
+        "⠀⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
         "⠀⠀⠀๑ el jackpot ha sido cancelado.\n\n"
         f"⠀⠀⠀✿ participantes reembolsados: {len(participantes)}\n"
         "⠀⠀⠀✿ sus kooins fueron devueltos.\n\n"
