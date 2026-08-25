@@ -219,6 +219,26 @@ async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = EXCLUDED.username
     """, (user_id, username, premio))
     conn.commit()
+    cur.execute("""
+    INSERT INTO puntos (user_id, username, score)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (user_id) DO UPDATE
+    SET score = puntos.score + EXCLUDED.score,
+        username = EXCLUDED.username
+""", (user_id, username, premio))
+
+# Registrar movimiento en el bankooins
+cur.execute("""
+    INSERT INTO movimientos_kooins
+    (user_id, cantidad, tipo)
+    VALUES (%s, %s, %s)
+""", (
+    user_id,
+    premio,
+    "juego_diario"
+))
+
+conn.commit()
     max_valor = max(bolsas.values())
     extra = " 🐰" if premio == max_valor else ""
     await query.edit_message_caption(caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )")
@@ -429,18 +449,28 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # Actualizar saldo
-        cur.execute(
-            """
-            UPDATE puntos
-            SET score = %s,
-                username = %s
-            WHERE user_id = %s
-            """,
-            (nuevo_saldo, username, target_id)
-        )
+# Actualizar saldo
+cur.execute(
+    """
+    UPDATE puntos
+    SET score = %s,
+        username = %s
+    WHERE user_id = %s
+    """,
+    (nuevo_saldo, username, target_id)
+)
 
-        conn.commit()
+# Registrar movimiento en bankooins
+cur.execute(
+    """
+    INSERT INTO movimientos_kooins
+    (user_id, cantidad, tipo)
+    VALUES (%s, %s, %s)
+    """,
+    (target_id, cantidad, "admin")
+)
+
+conn.commit()
 
         if cantidad > 0:
             await update.message.reply_text(
@@ -530,17 +560,27 @@ async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (lote, target_id, username, premio)
         )
 
-        # Sumar el premio a sus kooins
-        cur.execute(
-            """
-            UPDATE puntos
-            SET score = score + %s
-            WHERE user_id = %s
-            """,
-            (premio, target_id)
-        )
+# Sumar el premio a sus kooins
+cur.execute(
+    """
+    UPDATE puntos
+    SET score = score + %s
+    WHERE user_id = %s
+    """,
+    (premio, target_id)
+)
 
-        conn.commit()
+# Registrar movimiento en bankooins
+cur.execute(
+    """
+    INSERT INTO movimientos_kooins
+    (user_id, cantidad, tipo)
+    VALUES (%s, %s, %s)
+    """,
+    (target_id, premio, "obsequio")
+)
+
+conn.commit()
 
         conejito = " 🐰" if premio == premio_mayor else ""
 
@@ -1482,7 +1522,7 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intentos >= limite:
         await update.message.reply_text(
-            "ya utilizaste todos tus intentos de hoy. puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n"
+            "ya utilizaste todos tus intentos de hoy. puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
             f"límite actual: {limite} intentos.\n\n"
             "vuelve mañana para tentar tu suerte otra vez. 𖹭"
         )
@@ -1536,7 +1576,10 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
 
-    # Volver a comprobar los intentos
+    # -----------------------------------------
+    # COMPROBAR INTENTOS
+    # -----------------------------------------
+
     cur.execute("""
         SELECT fecha, intentos, intentos_extra
         FROM riesgos
@@ -1554,6 +1597,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     fecha, intentos, intentos_extra = fila
 
+    # Si cambió el día, reiniciar contador
     if fecha != hoy:
         intentos = 0
         intentos_extra = 0
@@ -1577,24 +1621,28 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Comprobar nuevamente los kooins
+    # -----------------------------------------
+    # COMPROBAR SALDO ACTUAL
+    # -----------------------------------------
+
     cur.execute(
         "SELECT score FROM puntos WHERE user_id = %s",
         (user_id,)
     )
 
     fila_puntos = cur.fetchone()
-    kooins = fila_puntos[0] if fila_puntos else 0
+    saldo_antes = fila_puntos[0] if fila_puntos else 0
 
-    if kooins < cantidad:
+    if saldo_antes < cantidad:
         await query.answer(
-            "ya no tienes suficientes kooins para hacer esta apuesta. ¡la ludopatia conlleva grandes consecuencias!",
+            f"ya no tienes suficientes kooins.\n"
+            f"tienes {saldo_antes} y quieres arriesgar {cantidad}.",
             show_alert=True
         )
         return
 
     # -----------------------------------------
-    # RESULTADOS Y PROBABILIDADES
+    # SORTEO
     # -----------------------------------------
 
     resultado = random.choices(
@@ -1607,48 +1655,97 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "triple"
         ],
         weights=[
-            35,  # perder todo
-            20,  # perder la mitad
+            20,  # perder todo
+            15,  # perder mitad
             20,  # recuperar
-            15,  # ganar 50%
-            8,   # duplicar
-            2    # x3
+            20,  # ganar mitad
+            15,  # duplicar
+            10   # triple
         ],
         k=1
     )[0]
 
-    if resultado == "perder":
-        cambio = -cantidad
-        texto_resultado = "que mala suerte... ni siquiera nosotros sabemos que decir al respecto. ( ´･･)ﾉ(._.`)"
-        
-    elif resultado == "mitad":
-        cambio = -(cantidad // 2)
-        texto_resultado = "ʕ-ᴥ-ʔ Koya se quedó con la mitad..."
-        
-    elif resultado == "recuperar":
-        cambio = 0
-        texto_resultado = "bueno, parece que recuperaste tu apuesta. no era tan interesante.. (◞‸ ◟)"
-        
-    elif resultado == "ganar_mitad":
-        cambio = cantidad // 2
-        texto_resultado = "ʕ·ᴥ·ʔ ¡Koya te dio un pequeño premio!"
-        
-    elif resultado == "duplicar":
-        cambio = cantidad
-        texto_resultado = "٩(ˊᗜˋ )و ｡¡qué suerte! duplicaste tu apuesta."
-        
-    else:
-        cambio = cantidad * 2
-        texto_resultado = "𖦹 ׂ 𓈒🐇 ೀ ¡ A COOKY LE AGRADAS! premio x3."
+    # -----------------------------------------
+    # CALCULAR CUÁNTO OBTIENE
+    # -----------------------------------------
 
-    # Aplicar resultado a los kooins
+    if resultado == "perder":
+
+        obtenido = 0
+
+        texto_resultado = (
+            "que mala suerte... "
+            "ni siquiera nosotros sabemos que decir al respecto. ( ´･･)ﾉ(._.`)"
+        )
+
+    elif resultado == "mitad":
+
+        obtenido = cantidad // 2
+
+        texto_resultado = (
+            "ʕ-ᴥ-ʔ Koya se quedó con la mitad..."
+        )
+
+    elif resultado == "recuperar":
+
+        obtenido = cantidad
+
+        texto_resultado = (
+            "bueno... recuperaste tu apuesta. "
+            "no era tan interesante.. (◞‸ ◟)"
+        )
+
+    elif resultado == "ganar_mitad":
+
+        obtenido = cantidad + (cantidad // 2)
+
+        texto_resultado = (
+            "ʕ·ᴥ·ʔ ¡Koya te dio un pequeño premio!"
+        )
+
+    elif resultado == "duplicar":
+
+        obtenido = cantidad * 2
+
+        texto_resultado = (
+            "٩(ˊᗜˋ )و ｡ ¡qué suerte! "
+            "duplicaste tu apuesta."
+        )
+
+    else:
+
+        obtenido = cantidad * 3
+
+        texto_resultado = (
+            "𖦹 ׂ 𓈒🐇 ೀ ¡A COOKY LE AGRADAS! "
+            "premio x3."
+        )
+
+    # -----------------------------------------
+    # CALCULAR CAMBIO REAL
+    # -----------------------------------------
+
+    cambio = obtenido - cantidad
+
+    saldo_despues = saldo_antes + cambio
+
+    # -----------------------------------------
+    # ACTUALIZAR SALDO
+    # -----------------------------------------
+
     cur.execute("""
         UPDATE puntos
-        SET score = score + %s
+        SET score = %s
         WHERE user_id = %s
-    """, (cambio, user_id))
+    """, (
+        saldo_despues,
+        user_id
+    ))
 
-    # Registrar intento
+    # -----------------------------------------
+    # REGISTRAR INTENTO
+    # -----------------------------------------
+
     cur.execute("""
         UPDATE riesgos
         SET intentos = intentos + 1
@@ -1657,32 +1754,28 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
-    # Obtener nuevo saldo
-    cur.execute(
-        "SELECT score FROM puntos WHERE user_id = %s",
-        (user_id,)
-    )
-
-    nuevo_saldo = cur.fetchone()[0]
+    # -----------------------------------------
+    # INTENTOS RESTANTES
+    # -----------------------------------------
 
     intentos_usados = intentos + 1
     restantes = limite - intentos_usados
 
-    if cambio > 0:
-        cambio_texto = f"+{cambio}"
-    elif cambio < 0:
-        cambio_texto = str(cambio)
-    else:
-        cambio_texto = "±0"
+    # -----------------------------------------
+    # MOSTRAR RESULTADO
+    # -----------------------------------------
 
     await query.answer()
 
     await query.edit_message_text(
-        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆ \n\n"
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆\n\n"
         f"⠀⠀⠀{texto_resultado}\n\n"
-        f"⠀⠀⠀apuesta: {cantidad} kooins\n"
-        f"⠀⠀⠀resultado: **{cambio_texto} kooins**\n\n"
-        f"⠀⠀⠀✿ saldo actual: **{nuevo_saldo} kooins**\n"
+
+        f"⠀⠀⠀𖹭 saldo antes: **{saldo_antes} kooins**\n"
+        f"⠀⠀⠀✿ arriesgaste: **{cantidad} kooins**\n"
+        f"⠀⠀⠀✿ obtuviste: **{obtenido} kooins**\n"
+        f"⠀⠀⠀𖹭 saldo después: **{saldo_despues} kooins**\n\n"
+
         f"⠀⠀⠀intentos restantes: "
         f"**{restantes}/{limite}**",
         parse_mode="Markdown"
@@ -1895,6 +1988,476 @@ async def verintentos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"fecha: {hoy}"
     )
 
+# --- JACKPOT (solo admin) ---
+async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Formato:
+    # /jackpot <kooins_por_persona>
+    # /jackpot <kooins_por_persona> <aporte_admin>
+
+    if len(context.args) not in (1, 2):
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/jackpot <kooins>\n"
+            "o\n"
+            "/jackpot <kooins> <aporte_admin>\n\n"
+            "ejemplo:\n"
+            "/jackpot 20\n"
+            "/jackpot 20 50"
+        )
+        return
+
+    try:
+        costo = int(context.args[0])
+        aporte_admin = int(context.args[1]) if len(context.args) == 2 else 0
+
+        if costo < 5 or aporte_admin < 0:
+            raise ValueError
+
+    except ValueError:
+        await update.message.reply_text(
+            "el aporte de cada participante debe ser de mínimo 5 kooins "
+            "y el aporte de la admin no puede ser negativo."
+        )
+        return
+
+    # Comprobar si ya hay un jackpot activo
+    cur.execute("""
+        SELECT id
+        FROM jackpots
+        WHERE activa = TRUE
+        LIMIT 1
+    """)
+
+    if cur.fetchone():
+        await update.message.reply_text(
+            "ya hay un jackpot abierto. ⊹ ࣪ ˖\n"
+            "termina ese antes de comenzar otro."
+        )
+        return
+
+    # Crear el jackpot
+    cur.execute("""
+        INSERT INTO jackpots
+        (costo_kooins, aporte_admin, pozo, activa)
+        VALUES (%s, %s, %s, TRUE)
+        RETURNING id
+    """, (
+        costo,
+        aporte_admin,
+        aporte_admin
+    ))
+
+    jackpot_id = cur.fetchone()[0]
+
+    conn.commit()
+
+    # Botón
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "guardar kooins . .",
+                callback_data="participar_jackpot"
+            )
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Enviar el mensaje al grupo
+    if not RIFA_CHAT_ID:
+        await update.message.reply_text(
+            "no hay un grupo configurado para el jackpot."
+        )
+        return
+
+    await context.bot.send_message(
+        chat_id=int(RIFA_CHAT_ID),
+        text=(
+            "⠀⠀⠀\n"
+            "⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
+            "⠀⠀⠀ el pozo ha sido abierto...\n\n"
+            f"⠀⠀⠀🎟️ entrada: {costo} kooins\n"
+            f"⠀⠀⠀🐇 cortesía de cooky: {aporte_admin} kooins\n\n"
+            f"⠀⠀⠀๑ pozo actual: {aporte_admin} kooins\n"
+            "⠀⠀⠀๑ participantes: 0\n\n"
+            "⠀⠀⠀cada personita tendrá una sola entrada.\n"
+            "⠀⠀⠀¿te atreves a dejar tu fortuna aquí? 𖹭"
+        ),
+        reply_markup=reply_markup
+    )
+
+    # Confirmación privada para la admin
+    await update.message.reply_text(
+        "🎰 ᛝ jackpot enviado al grupo. 𖹭"
+    )
+
+# --- PARTICIPAR EN JACKPOT ---
+async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    # Buscar jackpot activo
+    cur.execute("""
+        SELECT id, costo_kooins, aporte_admin, pozo
+        FROM jackpots
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    jackpot_actual = cur.fetchone()
+
+    if not jackpot_actual:
+        await query.answer(
+            "no hay ningún jackpot activo ahora mismo. ★",
+            show_alert=True
+        )
+        return
+
+    jackpot_id, costo, aporte_admin, pozo = jackpot_actual
+
+    # Comprobar si ya participa
+    cur.execute("""
+        SELECT id
+        FROM jackpot_participantes
+        WHERE jackpot_id = %s
+          AND user_id = %s
+    """, (jackpot_id, user_id))
+
+    if cur.fetchone():
+        await query.answer(
+            "ya tienes una entrada en este jackpot. ★",
+            show_alert=True
+        )
+        return
+
+    # Comprobar kooins disponibles
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila_puntos = cur.fetchone()
+    kooins = fila_puntos[0] if fila_puntos else 0
+
+    if kooins < costo:
+        await query.answer(
+            f"necesitas {costo} kooins para entrar.\n"
+            f"tienes {kooins}.",
+            show_alert=True
+        )
+        return
+
+    username = (
+        f"@{query.from_user.username}"
+        if query.from_user.username
+        else query.from_user.first_name
+    )
+
+    # Descontar kooins
+    cur.execute("""
+        UPDATE puntos
+        SET score = score - %s
+        WHERE user_id = %s
+    """, (costo, user_id))
+
+    # Registrar participante
+    cur.execute("""
+        INSERT INTO jackpot_participantes
+        (jackpot_id, user_id, username, kooins_aportados)
+        VALUES (%s, %s, %s, %s)
+    """, (
+        jackpot_id,
+        user_id,
+        username,
+        costo
+    ))
+
+    # Sumar los kooins al pozo
+    cur.execute("""
+        UPDATE jackpots
+        SET pozo = pozo + %s
+        WHERE id = %s
+    """, (costo, jackpot_id))
+
+    conn.commit()
+
+    # Obtener pozo actualizado
+    cur.execute("""
+        SELECT pozo
+        FROM jackpots
+        WHERE id = %s
+    """, (jackpot_id,))
+
+    nuevo_pozo = cur.fetchone()[0]
+
+    # Contar participantes
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM jackpot_participantes
+        WHERE jackpot_id = %s
+    """, (jackpot_id,))
+
+    participantes = cur.fetchone()[0]
+
+    await query.answer(
+        f"੭﹕¡guardaste {costo} kooins en el jackpot! 🎰",
+        show_alert=True
+    )
+
+    # Mensaje independiente en el grupo
+    try:
+        await query.message.reply_text(
+            f"⠀⠀⠀\n"
+            f"⠀⠀⠀♡ {username} ha guardado sus kooins en el pozo.\n\n"
+            f"⠀⠀⠀🎟️ aporte: {costo} kooins\n"
+            f"⠀⠀⠀๑ pozo actual: {nuevo_pozo} kooins\n"
+            f"⠀⠀⠀๑ participantes: {participantes}\n\n"
+            f"⠀⠀⠀una entrada asegurada...\n"
+            f"⠀⠀⠀mucha suerte. 𖹭"
+        )
+    except Exception:
+        pass
+
+# --- START JACKPOT (solo admin) ---
+async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar jackpot activo
+    cur.execute("""
+        SELECT id, pozo
+        FROM jackpots
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    jackpot_actual = cur.fetchone()
+
+    if not jackpot_actual:
+        await update.message.reply_text(
+            "no hay ningún jackpot activo en este momento. ૮๑ˊ  ˋ๑ა"
+        )
+        return
+
+    jackpot_id, pozo = jackpot_actual
+
+    # Buscar participantes
+    cur.execute("""
+        SELECT user_id, username
+        FROM jackpot_participantes
+        WHERE jackpot_id = %s
+    """, (jackpot_id,))
+
+    participantes = cur.fetchall()
+
+    if not participantes:
+        await update.message.reply_text(
+            "todavía nadie se ha unido al jackpot.\n"
+            "no hay nadie a quien elegir. ૮๑ˊ  ˋ๑ა"
+        )
+        return
+
+    # Elegir ganador al azar
+    ganador = random.choice(participantes)
+
+    ganador_id, ganador_username = ganador
+
+    # Cerrar jackpot y guardar ganador
+    cur.execute("""
+        UPDATE jackpots
+        SET activa = FALSE,
+            ganador_id = %s,
+            ganador_username = %s
+        WHERE id = %s
+    """, (
+        ganador_id,
+        ganador_username,
+        jackpot_id
+    ))
+
+    # Entregar todo el pozo al ganador
+    cur.execute("""
+        UPDATE puntos
+        SET score = score + %s
+        WHERE user_id = %s
+    """, (pozo, ganador_id))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        f"⠀⠀⠀\n"
+        f"⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
+        f"⠀⠀⠀๑ el pozo ha encontrado a su ganador...\n\n"
+        f"⠀⠀⠀𖹭 {ganador_username}\n\n"
+        f"⠀⠀⠀๑ premio: {pozo} kooins\n"
+        f"⠀⠀⠀¡todo el pozo es tuyo!\n"
+        f"⠀⠀⠀qué suerte tan bonita. 𖹭"
+    )
+
+# --- CANCELAR JACKPOT (solo admin) ---
+async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    # Buscar jackpot activo
+    cur.execute("""
+        SELECT id
+        FROM jackpots
+        WHERE activa = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    jackpot_actual = cur.fetchone()
+
+    if not jackpot_actual:
+        await update.message.reply_text(
+            "no hay ningún jackpot activo para cancelar. (っ˕ -｡)"
+        )
+        return
+
+    jackpot_id = jackpot_actual[0]
+
+    # Buscar participantes y sus aportes
+    cur.execute("""
+        SELECT user_id, kooins_aportados
+        FROM jackpot_participantes
+        WHERE jackpot_id = %s
+    """, (jackpot_id,))
+
+    participantes = cur.fetchall()
+
+    # Devolver los kooins
+    for participante_id, kooins_aportados in participantes:
+        cur.execute("""
+            UPDATE puntos
+            SET score = score + %s
+            WHERE user_id = %s
+        """, (kooins_aportados, participante_id))
+
+    # Cerrar el jackpot
+    cur.execute("""
+        UPDATE jackpots
+        SET activa = FALSE
+        WHERE id = %s
+    """, (jackpot_id,))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        "⠀⠀⠀\n"
+        "⠀⠀⠀ ⏔⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔⏔\n\n"
+        "⠀⠀⠀๑ el jackpot ha sido cancelado.\n\n"
+        f"⠀⠀⠀✿ participantes reembolsados: {len(participantes)}\n"
+        "⠀⠀⠀✿ sus kooins fueron devueltos.\n\n"
+        "⠀⠀⠀el pozo ha quedado cerrado.\n"
+        "⠀⠀⠀ya puedes iniciar otro cuando quieras. 𖹭"
+    )
+
+async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+
+        # Saldo actual
+        cur.execute(
+            "SELECT score FROM puntos WHERE user_id = %s",
+            (user_id,)
+        )
+        resultado = cur.fetchone()
+
+        if resultado is None:
+            await update.message.reply_text(
+                "(っ˕ -｡) 𝗓 𐰁 Aún no tienes kooins registrados."
+            )
+            cur.close()
+            conn.close()
+            return
+
+        saldo = resultado[0]
+
+        # Totales agrupados por dinámica
+        cur.execute("""
+            SELECT tipo, SUM(cantidad)
+            FROM movimientos_kooins
+            WHERE user_id = %s
+            GROUP BY tipo
+        """, (user_id,))
+
+        movimientos = dict(cur.fetchall())
+
+        # Ganados
+        ganados = sum(
+            cantidad for cantidad in movimientos.values()
+            if cantidad > 0
+        )
+
+        # Gastados
+        gastados = sum(
+            cantidad for cantidad in movimientos.values()
+            if cantidad < 0
+        )
+
+        # Construir mensaje
+        mensaje = (
+            "⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱ \n\n"
+        )
+
+        tipos = [
+            ("juego_diario", "𖹭 juego diario"),
+            ("obsequio", "𖹭 obsequios"),
+            ("koala", "𖹭 koalas"),
+            ("arriesgar", "𖹭 arriesgar"),
+            ("jackpot", "𖹭 jackpot"),
+            ("admin", "𖹭 admins"),
+            ("rifa", "🎟️ rifas")
+        ]
+
+        for tipo, nombre in tipos:
+            cantidad = movimientos.get(tipo, 0)
+
+            if cantidad != 0:
+                signo = "+" if cantidad > 0 else ""
+                mensaje += f"{nombre}: {signo}{cantidad} kooins\n"
+
+        mensaje += (
+            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            f"✿ kooins ganados: +{ganados}\n"
+            f"✿ kooins gastados: {gastados}\n"
+            f"✿ saldo actual: {saldo} kooins"
+        )
+
+        await update.message.reply_text(mensaje)
+
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"ERROR EN /bankooins: {e}")
+        await update.message.reply_text(
+            "❌ Ocurrió un error al consultar tus bankooins."
+        )
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -1921,6 +2484,12 @@ app.add_handler(
         pattern=r"^riesgo:"
     )
 )
+app.add_handler(
+    CallbackQueryHandler(
+        participar_jackpot,
+        pattern=r"^participar_jackpot$"
+    )
+)
 app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
@@ -1936,9 +2505,12 @@ app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
 app.add_handler(CommandHandler("arriesgar", arriesgar))
 app.add_handler(CommandHandler("darintento", darintento))
 app.add_handler(CommandHandler("verintentos", verintentos))
+app.add_handler(CommandHandler("jackpot", jackpot))
+app.add_handler(CommandHandler("startjackpot", startjackpot))
+app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
+app.add_handler(CommandHandler("bankooins", bankooins))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
-# Aquí cambias polling por webhook
 app.run_webhook(
     listen="0.0.0.0",
     port=8000,
