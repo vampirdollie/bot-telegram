@@ -1497,7 +1497,7 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
-                "(•؎ •) arriesgar . .",
+                "৻(  •̀ ᗜ •́  ৻) arriesgar . .",
                 callback_data=f"riesgo:{cantidad}"
             )
         ]
@@ -1506,8 +1506,9 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"⠀⠀⠀🎲 **NAM'S RISK**\n\n"
-        f"⠀⠀⠀{username}, estás a punto de arriesgar\n"
+        f"⠀⠀⠀\n"
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞\n\n"
+        f"⠀⠀⠀{username}, estás por arriesgar...\n"
         f"⠀⠀⠀**{cantidad} kooins**.\n\n"
         f"⠀⠀⠀puedes ganar, perder o tener suerte...\n"
         f"⠀⠀⠀¿te atreves? 𖹭\n\n"
@@ -1677,7 +1678,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     await query.edit_message_text(
-        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞\n\n"
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧₊˚ 🎱 ⋅ ☆ \n\n"
         f"⠀⠀⠀{texto_resultado}\n\n"
         f"⠀⠀⠀apuesta: {cantidad} kooins\n"
         f"⠀⠀⠀resultado: **{cambio_texto} kooins**\n\n"
