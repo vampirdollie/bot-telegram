@@ -2606,9 +2606,9 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     movimientos = cur.fetchall()
 
     mensaje = (
-        f"𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦\n\n"
-        f"usuario: {username}\n"
-        f"saldo actual: {saldo_actual} kooins\n\n"
+        f"⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱ \n\n" 
+        f"𖹭 usuario: {username}\n"
+        f"𖹭 saldo actual: {saldo_actual} kooins\n\n"
     )
 
     if not movimientos:
