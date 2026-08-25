@@ -2286,7 +2286,7 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         await query.message.reply_text(
             f"⠀⠀⠀\n"
-            f"⠀⠀⠀𖹭 {username} ha guardado
+            f"⠀⠀⠀𖹭 {username} ha guardado"
             f"⠀⠀⠀sus kooins en el pozo.\n\n"
             f"⠀⠀⠀🎟️ aporte: {costo} kooins\n"
             f"⠀⠀⠀๑ pozo actual: {nuevo_pozo} kooins\n"
@@ -2380,7 +2380,7 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"⠀⠀⠀\n"
         f"⠀⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
-        f"⠀⠀⠀๑ el pozo ha encontrado un ganador...\n\n"
+        f"⠀⠀⠀๑ el pozo eligió a su favorito...\n\n"
         f"⠀⠀⠀𖹭 {ganador_username}\n\n"
         f"⠀⠀⠀๑ premio: {pozo} kooins\n"
         f"⠀⠀⠀¡todo el pozo es tuyo!\n"
@@ -2607,7 +2607,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         mensaje += (
-            "⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             f"✿ kooins ganados: +{ganados}\n"
             f"✿ kooins gastados: {gastados}\n"
             f"✿ saldo actual: {saldo_actual} kooins"
