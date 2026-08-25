@@ -402,6 +402,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "SELECT user_id, score FROM puntos WHERE username=%s",
                 (objetivo,)
             )
+
             row = cur.fetchone()
 
             if not row:
@@ -423,6 +424,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "SELECT score, username FROM puntos WHERE user_id=%s",
                 (target_id,)
             )
+
             row = cur.fetchone()
 
             if not row:
@@ -435,14 +437,14 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             saldo_actual = row[0]
             username = row[1] or f"ID:{objetivo}"
 
-        # Bloqueados no pueden recibir ni perder kooins mediante este comando
+        # Bloqueados no pueden recibir ni perder kooins
         if esta_bloqueado(target_id):
             await update.message.reply_text(
                 "no puedes modificar los kooins de este usuario."
             )
             return
 
-        # Evitar que el saldo quede negativo
+        # Evitar saldo negativo
         nuevo_saldo = saldo_actual + cantidad
 
         if nuevo_saldo < 0:
@@ -453,28 +455,28 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-# Actualizar saldo
-cur.execute(
-    """
-    UPDATE puntos
-    SET score = %s,
-        username = %s
-    WHERE user_id = %s
-    """,
-    (nuevo_saldo, username, target_id)
-)
+        # Actualizar saldo
+        cur.execute(
+            """
+            UPDATE puntos
+            SET score = %s,
+                username = %s
+            WHERE user_id = %s
+            """,
+            (nuevo_saldo, username, target_id)
+        )
 
-# Registrar movimiento en bankooins
-cur.execute(
-    """
-    INSERT INTO movimientos_kooins
-    (user_id, cantidad, tipo)
-    VALUES (%s, %s, %s)
-    """,
-    (target_id, cantidad, "admin")
-)
+        # Registrar movimiento en bankooins
+        cur.execute(
+            """
+            INSERT INTO movimientos_kooins
+            (user_id, cantidad, tipo)
+            VALUES (%s, %s, %s)
+            """,
+            (target_id, cantidad, "admin")
+        )
 
-conn.commit()
+        conn.commit()
 
         if cantidad > 0:
             await update.message.reply_text(
