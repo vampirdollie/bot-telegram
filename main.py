@@ -2379,8 +2379,8 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"⠀⠀⠀\n"
-        f"⠀⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
-        f"⠀⠀⠀๑ el pozo eligió a su favorito...\n\n"
+        f"⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n"
+        f"⠀๑ el pozo eligió a su favorito...\n\n"
         f"⠀⠀⠀𖹭 {ganador_username}\n\n"
         f"⠀⠀⠀๑ premio: {pozo} kooins\n"
         f"⠀⠀⠀¡todo el pozo es tuyo!\n"
