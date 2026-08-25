@@ -2571,12 +2571,15 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not movimientos:
 
         mensaje += (
+            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             "✿ todavía no tiene movimientos registrados."
         )
 
     else:
 
-        mensaje += "✿ historial de movimientos:\n\n"
+        mensaje +=
+            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            "✿ historial de movimientos:\n\n"
 
         ganados = 0
         gastados = 0
