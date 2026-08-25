@@ -1507,7 +1507,7 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"⠀⠀⠀\n"
-        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞\n\n"
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆ \n\n"
         f"⠀⠀⠀{username}, estás por arriesgar...\n"
         f"⠀⠀⠀**{cantidad} kooins**.\n\n"
         f"⠀⠀⠀puedes ganar, perder o tener suerte...\n"
@@ -1678,7 +1678,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     await query.edit_message_text(
-        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧₊˚ 🎱 ⋅ ☆ \n\n"
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆ \n\n"
         f"⠀⠀⠀{texto_resultado}\n\n"
         f"⠀⠀⠀apuesta: {cantidad} kooins\n"
         f"⠀⠀⠀resultado: **{cambio_texto} kooins**\n\n"
