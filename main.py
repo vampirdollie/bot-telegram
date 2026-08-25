@@ -1214,7 +1214,7 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"⠀⠀⠀\n"
-        f"⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n"
+        f"⠀⠀⠀𝗡𝗔𝗠'𝗦 𝗟𝗨𝗖𝗞𝗬 𝗡𝗨𝗠𝗕𝗘𝗥 𖹭\n"
         f"⠀⠀⠀✿ ¡el sorteo ha comenzado!\n"
         f"⠀⠀⠀⠀⠀⠀⠀⠀⠀# {numero_ganador:04d}\n\n"
         f"⠀⠀⠀๑ ¡{ganador_username} ha ganado!\n"
