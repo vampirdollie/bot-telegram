@@ -2577,7 +2577,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     else:
 
-        mensaje +=
+        mensaje += (
             "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             "✿ historial de movimientos:\n\n"
         )
