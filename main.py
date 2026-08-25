@@ -11,6 +11,7 @@ RIFA_CHAT_ID = os.getenv("RIFA_CHAT_ID")
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 SUPERADMINS = ["7943521525"]  # solo tú
+MAX_INTENTOS_RIESGO = 3
 
 # --- Bloqueados ---
 BLOQUEADOS = [
@@ -1391,6 +1392,508 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "ya puedes iniciar una nueva rifa cuando quieras. 𖹭"
     )
 
+# --- ARRIESGAR ---
+async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in BLOQUEADOS:
+        await mensaje_bloqueo(update)
+        return
+
+    # Comprobar formato
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/arriesgar <cantidad>\n\n"
+            "ejemplo:\n"
+            "/arriesgar 30"
+        )
+        return
+
+    try:
+        cantidad = int(context.args[0])
+
+        if cantidad <= 0:
+            raise ValueError
+
+    except ValueError:
+        await update.message.reply_text(
+            "la cantidad debe ser un número entero mayor que 0."
+        )
+        return
+
+    # Comprobar kooins disponibles
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila = cur.fetchone()
+    kooins = fila[0] if fila else 0
+
+    if kooins < cantidad:
+        await update.message.reply_text(
+            f"no tienes suficientes kooins.\n"
+            f"tienes {kooins} y quieres arriesgar {cantidad}. (╹ -╹)?"
+        )
+        return
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # Buscar los intentos de hoy
+    cur.execute("""
+        SELECT fecha, intentos, intentos_extra
+        FROM riesgos
+        WHERE user_id = %s
+    """, (user_id,))
+
+    fila_riesgo = cur.fetchone()
+
+    if not fila_riesgo:
+        intentos = 0
+        intentos_extra = 0
+
+        cur.execute("""
+            INSERT INTO riesgos (user_id, fecha, intentos, intentos_extra)
+            VALUES (%s, %s, 0, 0)
+        """, (user_id, hoy))
+
+        conn.commit()
+
+    else:
+        fecha, intentos, intentos_extra = fila_riesgo
+
+        # Si es un nuevo día, reiniciar los intentos
+        if fecha != hoy:
+            intentos = 0
+            intentos_extra = 0
+
+            cur.execute("""
+                UPDATE riesgos
+                SET fecha = %s,
+                    intentos = 0,
+                    intentos_extra = 0
+                WHERE user_id = %s
+            """, (hoy, user_id))
+
+            conn.commit()
+
+    limite = MAX_INTENTOS_RIESGO + intentos_extra
+
+    if intentos >= limite:
+        await update.message.reply_text(
+            "ya utilizaste todos tus intentos de hoy. puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n"
+            f"límite actual: {limite} intentos.\n\n"
+            "vuelve mañana para tentar tu suerte otra vez. 𖹭"
+        )
+        return
+
+    username = (
+        f"@{update.effective_user.username}"
+        if update.effective_user.username
+        else update.effective_user.first_name
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "(•؎ •) arriesgar . .",
+                callback_data=f"riesgo:{cantidad}"
+            )
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"⠀⠀⠀🎲 **NAM'S RISK**\n\n"
+        f"⠀⠀⠀{username}, estás a punto de arriesgar\n"
+        f"⠀⠀⠀**{cantidad} kooins**.\n\n"
+        f"⠀⠀⠀puedes ganar, perder o tener suerte...\n"
+        f"⠀⠀⠀¿te atreves? 𖹭\n\n"
+        f"⠀⠀⠀intentos restantes: "
+        f"{limite - intentos}/{limite}",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+
+
+# --- RESULTADO DE ARRIESGAR ---
+async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    cantidad = int(query.data.split(":")[1])
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # Volver a comprobar los intentos
+    cur.execute("""
+        SELECT fecha, intentos, intentos_extra
+        FROM riesgos
+        WHERE user_id = %s
+    """, (user_id,))
+
+    fila = cur.fetchone()
+
+    if not fila:
+        await query.answer(
+            "algo salió mal con tus intentos. intenta nuevamente.",
+            show_alert=True
+        )
+        return
+
+    fecha, intentos, intentos_extra = fila
+
+    if fecha != hoy:
+        intentos = 0
+        intentos_extra = 0
+
+        cur.execute("""
+            UPDATE riesgos
+            SET fecha = %s,
+                intentos = 0,
+                intentos_extra = 0
+            WHERE user_id = %s
+        """, (hoy, user_id))
+
+        conn.commit()
+
+    limite = MAX_INTENTOS_RIESGO + intentos_extra
+
+    if intentos >= limite:
+        await query.answer(
+            "ya no tienes intentos disponibles hoy.",
+            show_alert=True
+        )
+        return
+
+    # Comprobar nuevamente los kooins
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila_puntos = cur.fetchone()
+    kooins = fila_puntos[0] if fila_puntos else 0
+
+    if kooins < cantidad:
+        await query.answer(
+            "ya no tienes suficientes kooins para hacer esta apuesta. ¡la ludopatia conlleva grandes consecuencias!",
+            show_alert=True
+        )
+        return
+
+    # -----------------------------------------
+    # RESULTADOS Y PROBABILIDADES
+    # -----------------------------------------
+
+    resultado = random.choices(
+        [
+            "perder",
+            "mitad",
+            "recuperar",
+            "ganar_mitad",
+            "duplicar",
+            "triple"
+        ],
+        weights=[
+            35,  # perder todo
+            20,  # perder la mitad
+            20,  # recuperar
+            15,  # ganar 50%
+            8,   # duplicar
+            2    # x3
+        ],
+        k=1
+    )[0]
+
+    if resultado == "perder":
+        cambio = -cantidad
+        texto_resultado = "que mala suerte... ni siquiera nosotros sabemos que decir al respecto. ( ´･･)ﾉ(._.`)"
+        
+    elif resultado == "mitad":
+        cambio = -(cantidad // 2)
+        texto_resultado = "ʕ-ᴥ-ʔ Koya se quedó con la mitad..."
+        
+    elif resultado == "recuperar":
+        cambio = 0
+        texto_resultado = "bueno, parece que recuperaste tu apuesta. no era tan interesante.. (◞‸ ◟)"
+        
+    elif resultado == "ganar_mitad":
+        cambio = cantidad // 2
+        texto_resultado = "ʕ·ᴥ·ʔ ¡Koya te dio un pequeño premio!"
+        
+    elif resultado == "duplicar":
+        cambio = cantidad
+        texto_resultado = "٩(ˊᗜˋ )و ｡¡qué suerte! duplicaste tu apuesta."
+        
+    else:
+        cambio = cantidad * 2
+        texto_resultado = "𖦹 ׂ 𓈒🐇 ೀ ¡ A COOKY LE AGRADAS! premio x3."
+
+    # Aplicar resultado a los kooins
+    cur.execute("""
+        UPDATE puntos
+        SET score = score + %s
+        WHERE user_id = %s
+    """, (cambio, user_id))
+
+    # Registrar intento
+    cur.execute("""
+        UPDATE riesgos
+        SET intentos = intentos + 1
+        WHERE user_id = %s
+    """, (user_id,))
+
+    conn.commit()
+
+    # Obtener nuevo saldo
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    nuevo_saldo = cur.fetchone()[0]
+
+    intentos_usados = intentos + 1
+    restantes = limite - intentos_usados
+
+    if cambio > 0:
+        cambio_texto = f"+{cambio}"
+    elif cambio < 0:
+        cambio_texto = str(cambio)
+    else:
+        cambio_texto = "±0"
+
+    await query.answer()
+
+    await query.edit_message_text(
+        f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞\n\n"
+        f"⠀⠀⠀{texto_resultado}\n\n"
+        f"⠀⠀⠀apuesta: {cantidad} kooins\n"
+        f"⠀⠀⠀resultado: **{cambio_texto} kooins**\n\n"
+        f"⠀⠀⠀✿ saldo actual: **{nuevo_saldo} kooins**\n"
+        f"⠀⠀⠀intentos restantes: "
+        f"**{restantes}/{limite}**",
+        parse_mode="Markdown"
+    )
+
+# --- DAR INTENTOS DE RIESGO (solo admin) ---
+async def darintento(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    if len(context.args) != 2:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/darintento <cantidad> @usuario\n\n"
+            "ejemplo:\n"
+            "/darintento 2 @usuario"
+        )
+        return
+
+    try:
+        cantidad = int(context.args[0])
+
+        if cantidad <= 0:
+            raise ValueError
+
+    except ValueError:
+        await update.message.reply_text(
+            "la cantidad de intentos debe ser un número entero mayor que 0."
+        )
+        return
+
+    objetivo = context.args[1]
+
+    if not objetivo.startswith("@"):
+        await update.message.reply_text(
+            "debes indicar el usuario con @.\n"
+            "ejemplo: /darintento 2 @usuario"
+        )
+        return
+
+    # Buscar al usuario en puntos
+    cur.execute(
+        "SELECT user_id, username FROM puntos WHERE username = %s",
+        (objetivo,)
+    )
+
+    fila = cur.fetchone()
+
+    if not fila:
+        await update.message.reply_text(
+            "este usuario todavía no está registrado en el bot. pidele que inicie y abra la cajita del día."
+        )
+        return
+
+    target_id, username = fila
+
+    if esta_bloqueado(target_id):
+        await update.message.reply_text(
+            "ups, no puedes dar intentos a este usuario."
+        )
+        return
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # Buscar registro de riesgo
+    cur.execute("""
+        SELECT fecha, intentos, intentos_extra
+        FROM riesgos
+        WHERE user_id = %s
+    """, (target_id,))
+
+    fila_riesgo = cur.fetchone()
+
+    if not fila_riesgo:
+
+        cur.execute("""
+            INSERT INTO riesgos
+            (user_id, fecha, intentos, intentos_extra)
+            VALUES (%s, %s, 0, %s)
+        """, (
+            target_id,
+            hoy,
+            cantidad
+        ))
+
+        intentos = 0
+        intentos_extra = cantidad
+
+    else:
+        fecha, intentos, intentos_extra = fila_riesgo
+
+        # Si es otro día, empezar nuevamente
+        if fecha != hoy:
+
+            intentos = 0
+            intentos_extra = cantidad
+
+            cur.execute("""
+                UPDATE riesgos
+                SET fecha = %s,
+                    intentos = 0,
+                    intentos_extra = %s
+                WHERE user_id = %s
+            """, (
+                hoy,
+                cantidad,
+                target_id
+            ))
+
+        else:
+
+            intentos_extra += cantidad
+
+            cur.execute("""
+                UPDATE riesgos
+                SET intentos_extra = %s
+                WHERE user_id = %s
+            """, (
+                intentos_extra,
+                target_id
+            ))
+
+    conn.commit()
+
+    limite_total = MAX_INTENTOS_RIESGO + intentos_extra
+    disponibles = limite_total - intentos
+
+    await update.message.reply_text(
+        f"๑ se añadieron {cantidad} intentos a {username}.\n\n"
+        f"✿ intentos disponibles hoy: {disponibles}\n"
+        f"𖹭 límite total de hoy: {limite_total}"
+    )
+
+# --- VER INTENTOS DE RIESGO (solo admin) ---
+async def verintentos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/verintentos @usuario"
+        )
+        return
+
+    objetivo = context.args[0]
+
+    if not objetivo.startswith("@"):
+        await update.message.reply_text(
+            "debes indicar el usuario con @.\n"
+            "ejemplo: /verintentos @usuario"
+        )
+        return
+
+    # Buscar usuario
+    cur.execute(
+        "SELECT user_id, username FROM puntos WHERE username = %s",
+        (objetivo,)
+    )
+
+    fila = cur.fetchone()
+
+    if not fila:
+        await update.message.reply_text(
+            "ese usuario todavía no está registrado en el bot."
+        )
+        return
+
+    target_id, username = fila
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # Buscar sus intentos
+    cur.execute("""
+        SELECT fecha, intentos, intentos_extra
+        FROM riesgos
+        WHERE user_id = %s
+    """, (target_id,))
+
+    fila_riesgo = cur.fetchone()
+
+    # Si nunca ha usado /arriesgar
+    if not fila_riesgo:
+        intentos = 0
+        intentos_extra = 0
+
+    else:
+        fecha, intentos, intentos_extra = fila_riesgo
+
+        # Si el registro pertenece a otro día,
+        # hoy vuelve a tener sus intentos normales.
+        if fecha != hoy:
+            intentos = 0
+            intentos_extra = 0
+
+    limite = MAX_INTENTOS_RIESGO + intentos_extra
+    disponibles = max(0, limite - intentos)
+
+    await update.message.reply_text(
+        f"𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞\n\n"
+        f"usuario: {username}\n\n"
+        f"𖹭 intentos usados: {intentos}\n"
+        f"𖹭 intentos normales: {MAX_INTENTOS_RIESGO}\n"
+        f"𖹭 intentos extra: {intentos_extra}\n"
+        f"𖹭 disponibles hoy: {disponibles}\n\n"
+        f"fecha: {hoy}"
+    )
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -1411,6 +1914,12 @@ app.add_handler(
         pattern=r"^participar_rifa$"
     )
 )
+app.add_handler(
+    CallbackQueryHandler(
+        resultado_riesgo,
+        pattern=r"^riesgo:"
+    )
+)
 app.add_handler(CallbackQueryHandler(elegir_bolsa))
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
@@ -1423,6 +1932,9 @@ app.add_handler(CommandHandler("limpiarrifa", limpiarrifa))
 app.add_handler(CommandHandler("ganadoresrobux", ganadoresrobux))
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
+app.add_handler(CommandHandler("arriesgar", arriesgar))
+app.add_handler(CommandHandler("darintento", darintento))
+app.add_handler(CommandHandler("verintentos", verintentos))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 # Aquí cambias polling por webhook
