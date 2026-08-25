@@ -2547,6 +2547,92 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ Ocurrió un error al consultar tus bankooins."
         )
 
+# --- BANKOOINS (solo admin) ---
+async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id not in SUPERADMINS:
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/bankooins @usuario\n\n"
+            "ejemplo:\n"
+            "/bankooins @usuario"
+        )
+        return
+
+    objetivo = context.args[0]
+
+    if not objetivo.startswith("@"):
+        await update.message.reply_text(
+            "debes indicar el usuario con @.\n"
+            "ejemplo: /bankooins @usuario"
+        )
+        return
+
+    # Buscar usuario
+    cur.execute(
+        """
+        SELECT user_id, username, score
+        FROM puntos
+        WHERE username = %s
+        """,
+        (objetivo,)
+    )
+
+    fila = cur.fetchone()
+
+    if not fila:
+        await update.message.reply_text(
+            "ese usuario todavía no está registrado en el bot."
+        )
+        return
+
+    target_id, username, saldo_actual = fila
+
+    # Buscar historial
+    cur.execute(
+        """
+        SELECT cantidad, tipo, fecha
+        FROM movimientos_kooins
+        WHERE user_id = %s
+        ORDER BY id DESC
+        """,
+        (target_id,)
+    )
+
+    movimientos = cur.fetchall()
+
+    mensaje = (
+        f"𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦\n\n"
+        f"usuario: {username}\n"
+        f"saldo actual: {saldo_actual} kooins\n\n"
+    )
+
+    if not movimientos:
+        mensaje += (
+            "✿ todavía no tiene movimientos registrados."
+        )
+
+    else:
+        mensaje += "✿ historial de movimientos:\n\n"
+
+        for cantidad, tipo, fecha in movimientos:
+            signo = "+" if cantidad > 0 else ""
+
+            fecha_formateada = fecha.strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
+            mensaje += (
+                f"𖹭 {signo}{cantidad} kooins\n"
+                f"   └ {tipo} · {fecha_formateada}\n"
+            )
+
+    await update.message.reply_text(mensaje)
+
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
