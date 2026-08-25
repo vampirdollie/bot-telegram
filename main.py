@@ -247,6 +247,7 @@ async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_caption(
         caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )"
     )
+
 # --- TOTAL ---
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -1069,8 +1070,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ocupados = {fila[0] for fila in cur.fetchall()}
 
-    # La cantidad configurada es el máximo de participantes,
-    # no el máximo del número.
+    # La cantidad configurada es el máximo de participantes
     if len(ocupados) >= cantidad_numeros:
         await query.answer(
             "ya se ocuparon todos los números disponibles para esta rifa. 🐨",
@@ -1087,9 +1087,6 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     numero = random.choice(disponibles)
 
-    # Elegir número aleatorio
-    numero = random.choice(disponibles)
-
     username = (
         f"@{query.from_user.username}"
         if query.from_user.username
@@ -1102,6 +1099,17 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         SET score = score - %s
         WHERE user_id = %s
     """, (costo, user_id))
+
+    # Registrar movimiento en bankooins
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        user_id,
+        -costo,
+        "rifa"
+    ))
 
     # Guardar participante
     cur.execute("""
@@ -1317,6 +1325,17 @@ async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             WHERE user_id = %s
         """, (kooins_pagados, participante_id))
 
+        # Registrar devolución en bankooins
+        cur.execute("""
+            INSERT INTO movimientos_kooins
+            (user_id, cantidad, tipo)
+            VALUES (%s, %s, %s)
+        """, (
+            participante_id,
+            kooins_pagados,
+            "rifa"
+        ))
+
     # Cerrar la rifa
     cur.execute("""
         UPDATE rifas
@@ -1414,6 +1433,17 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             SET score = score + %s
             WHERE user_id = %s
         """, (kooins_pagados, participante_id))
+
+        # Registrar devolución en bankooins
+        cur.execute("""
+            INSERT INTO movimientos_kooins
+            (user_id, cantidad, tipo)
+            VALUES (%s, %s, %s)
+        """, (
+            participante_id,
+            kooins_pagados,
+            "rifa"
+        ))
 
     # Eliminar participantes
     cur.execute("""
@@ -1751,6 +1781,18 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """, (
         saldo_despues,
         user_id
+    ))
+
+    # Registrar movimiento en bankooins
+    # Se registra únicamente el cambio real del saldo.
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        user_id,
+        cambio,
+        "arriesgar"
     ))
 
     # -----------------------------------------
@@ -2184,6 +2226,17 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
         WHERE user_id = %s
     """, (costo, user_id))
 
+    # Registrar movimiento en bankooins
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        user_id,
+        -costo,
+        "jackpot"
+    ))
+
     # Registrar participante
     cur.execute("""
         INSERT INTO jackpot_participantes
@@ -2228,7 +2281,6 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
         show_alert=True
     )
 
-    # Mensaje independiente en el grupo
     try:
         await query.message.reply_text(
             f"⠀⠀⠀\n"
@@ -2309,6 +2361,17 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WHERE user_id = %s
     """, (pozo, ganador_id))
 
+    # Registrar movimiento en bankooins
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        ganador_id,
+        pozo,
+        "jackpot"
+    ))
+
     conn.commit()
 
     await update.message.reply_text(
@@ -2358,11 +2421,26 @@ async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Devolver los kooins
     for participante_id, kooins_aportados in participantes:
+
         cur.execute("""
             UPDATE puntos
             SET score = score + %s
             WHERE user_id = %s
-        """, (kooins_aportados, participante_id))
+        """, (
+            kooins_aportados,
+            participante_id
+        ))
+
+        # Registrar devolución en bankooins
+        cur.execute("""
+            INSERT INTO movimientos_kooins
+            (user_id, cantidad, tipo)
+            VALUES (%s, %s, %s)
+        """, (
+            participante_id,
+            kooins_aportados,
+            "jackpot"
+        ))
 
     # Cerrar el jackpot
     cur.execute("""
