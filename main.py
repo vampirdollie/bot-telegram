@@ -2135,13 +2135,13 @@ async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=int(RIFA_CHAT_ID),
         text=(
             "⠀⠀⠀\n"
-            "⠀⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
+            "⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
             "⠀⠀⠀ el pozo ha sido abierto...\n\n"
             f"⠀⠀⠀🎟️ entrada: {costo} kooins\n"
-            f"⠀⠀⠀🐰ྀི coortesía: {aporte_admin} kooins\n\n"
-            f"⠀⠀⠀๑ pozo actual: {aporte_admin} kooins\n"
-            "⠀⠀⠀cada personita tiene una entrada.\n"
-            "⠀⠀¿te atreves a dejar tu fortuna aquí? 𖹭"
+            f"⠀⠀⠀🐰ྀི coortesía: {aporte_admin} kooins\n"
+            f"⠀⠀⠀๑ pozo actual: {aporte_admin} kooins\n\n"
+            "⠀⠀cada personita tiene (1) entrada.\n"
+            "⠀⠀¿te atreves a guardar tu fortuna? 𖹭"
         ),
         reply_markup=reply_markup
     )
@@ -2286,7 +2286,7 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         await query.message.reply_text(
             f"⠀⠀⠀\n"
-            f"⠀⠀⠀𖹭 {username} ha guardado"
+            f"⠀⠀⠀𖹭 {username} ha guardado\n"
             f"⠀⠀⠀sus kooins en el pozo.\n\n"
             f"⠀⠀⠀🎟️ aporte: {costo} kooins\n"
             f"⠀⠀⠀๑ pozo actual: {nuevo_pozo} kooins\n"
@@ -2456,12 +2456,12 @@ async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
+        "⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
         "⠀⠀⠀๑ el jackpot ha sido cancelado.\n\n"
-        f"⠀⠀⠀✿ participantes reembolsados: {len(participantes)}\n"
-        "⠀⠀⠀✿ sus kooins fueron devueltos.\n\n"
-        "⠀⠀⠀el pozo ha quedado cerrado.\n"
-        "⠀⠀⠀ya puedes iniciar otro cuando quieras. 𖹭"
+        f"⠀⠀✿ participantes reembolsados: {len(participantes)}\n"
+        "⠀⠀✿ sus kooins fueron devueltos.\n\n"
+        "⠀⠀el pozo ha quedado cerrado,\n"
+        "⠀⠀puedes iniciar otro cuando quieras. 𖹭"
     )
 
 # --- BANKOOINS ---
