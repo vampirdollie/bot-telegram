@@ -2571,14 +2571,14 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not movimientos:
 
         mensaje += (
-            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            "⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             "✿ todavía no tiene movimientos registrados."
         )
 
     else:
 
         mensaje += (
-            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            "⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             "✿ historial de movimientos:\n\n"
         )
 
@@ -2604,7 +2604,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         mensaje += (
-            "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
+            "⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             f"✿ kooins ganados: +{ganados}\n"
             f"✿ kooins gastados: {gastados}\n"
             f"✿ saldo actual: {saldo_actual} kooins"
