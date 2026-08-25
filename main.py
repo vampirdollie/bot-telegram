@@ -832,6 +832,13 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
             username = EXCLUDED.username
     """, (user_id, username, premio))
 
+    # Registrar movimiento en bankooins
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (user_id, premio, "koala"))
+
     conn.commit()
 
     # Cambiar el texto de la imagen por el resultado
