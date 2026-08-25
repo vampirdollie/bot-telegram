@@ -2580,6 +2580,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensaje +=
             "\n⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
             "✿ historial de movimientos:\n\n"
+        )
 
         ganados = 0
         gastados = 0
