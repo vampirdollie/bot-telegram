@@ -90,7 +90,7 @@ KOALA_CHAT_ID = os.getenv("KOALA_CHAT_ID")
 RIFA_CHAT_ID = os.getenv("RIFA_CHAT_ID")
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
-SUPERADMINS = ["7943521525"]  # solo tú
+SUPERADMINS = ["7740467368"]  # solo tú
 MAX_INTENTOS_RIESGO = 3
 
 # --- Bloqueados ---
@@ -103,11 +103,17 @@ BLOQUEADOS = [
     "6727430013", # neo
     "1470807173", # mika
     "6911676625", # castillo
-    "6813476131"  # cat
+    "6813476131",  # cat
+    "7740467368", # min
+    "8124589828", # leis
+    "1296115044", # bel
+    "5515948854", # paris
+    "6905064136", # valu
+    "965030471" # pau
 ]
 
 ADMINS = {
-    "7740467368", # min
+    "7943521525", # min
     "8124589828", # leis
     "1296115044", # bel
     "5515948854", # paris
