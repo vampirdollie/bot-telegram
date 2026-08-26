@@ -1717,7 +1717,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = 0
 
         texto_resultado = (
-            "que mala suerte... "
+            "que mala suerte... \n"
             "ni siquiera nosotros sabemos que decir al respecto. ( ´･･)ﾉ(._.`)"
         )
 
@@ -1734,7 +1734,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad
 
         texto_resultado = (
-            "bueno... recuperaste tu apuesta. "
+            "bueno... recuperaste tu apuesta. \n"
             "no era tan interesante.. (◞‸ ◟)"
         )
 
@@ -1751,7 +1751,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad * 2
 
         texto_resultado = (
-            "٩(ˊᗜˋ )و ｡ ¡qué suerte! "
+            "٩(ˊᗜˋ )و ｡ ¡qué suerte! \n"
             "duplicaste tu apuesta."
         )
 
@@ -1760,7 +1760,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad * 3
 
         texto_resultado = (
-            "𖦹 ׂ 𓈒🐇 ೀ ¡A COOKY LE AGRADAS! "
+            "𖦹 ׂ 𓈒🐇 ೀ ¡A COOKY LE AGRADAS! \n"
             "premio x3."
         )
 
@@ -1826,10 +1826,10 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆\n\n"
         f"⠀⠀⠀{texto_resultado}\n\n"
 
-        f"⠀⠀⠀𖹭 saldo antes: **{saldo_antes} kooins**\n"
-        f"⠀⠀⠀✿ arriesgaste: **{cantidad} kooins**\n"
-        f"⠀⠀⠀✿ obtuviste: **{obtenido} kooins**\n"
-        f"⠀⠀⠀𖹭 saldo después: **{saldo_despues} kooins**\n\n"
+        f"⠀⠀⠀𖹭 saldo antes: {saldo_antes} kooins\n"
+        f"⠀⠀⠀✿ arriesgaste: {cantidad} kooins\n"
+        f"⠀⠀⠀✿ obtuviste: {obtenido} kooins\n"
+        f"⠀⠀⠀𖹭 saldo después: {saldo_despues} kooins**\n\n"
 
         f"⠀⠀⠀intentos restantes: "
         f"{restantes}/{limite}",
