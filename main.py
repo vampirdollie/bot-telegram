@@ -545,7 +545,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Bloqueados no pueden recibir ni perder kooins
         if esta_bloqueado(target_id):
             await update.message.reply_text(
-                "no puedes modificar los kooins de este usuario."
+                "no puedes modificar los kooins de este usuario. ¡es un admin! ૮₍ ˃ ⤙ ˂ ₎ა"
             )
             return
 
@@ -1667,7 +1667,8 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intentos >= limite:
         await update.message.reply_text(
-            "ya utilizaste todos tus intentos de hoy. puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
+            "ya utilizaste todos tus intentos de hoy.\n"
+            f"puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
             f"límite actual: {limite} intentos.\n\n"
             "vuelve mañana para tentar tu suerte otra vez. 𖹭"
         )
@@ -1693,10 +1694,10 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"⠀⠀⠀\n"
         f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆ \n\n"
-        f"⠀⠀⠀{username}, estás por arriesgar...\n"
-        f"⠀⠀⠀{cantidad} kooins.\n\n"
-        f"⠀⠀⠀puedes ganar, perder o tener suerte...\n"
-        f"⠀⠀⠀¿te atreves? 𖹭\n\n"
+        f"⠀⠀⠀{username}, estás por\n"
+        f"⠀⠀⠀arriesgar: {cantidad} kooins.\n\n"
+        f"⠀⠀⠀puedes ganar, perder o\n"
+        f"⠀⠀⠀tener suerte... ¿te atreves? 𖹭\n\n"
         f"⠀⠀⠀intentos restantes: "
         f"{limite - intentos}/{limite}",
         reply_markup=reply_markup,
@@ -1827,7 +1828,8 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad // 2
 
         texto_resultado = (
-            "ʕ-ᴥ-ʔ Koya se quedó con la mitad..."
+            "ʕ-ᴥ-ʔ Koya se quedó\n"
+            "⠀⠀⠀con la mitad..."
         )
 
     elif resultado == "recuperar":
@@ -1835,8 +1837,10 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad
 
         texto_resultado = (
-            "bueno... recuperaste tu apuesta. \n"
-            "no era tan interesante.. (◞‸ ◟)"
+            "bueno... recuperaste\n"
+            "⠀⠀⠀tu apuesta. \n"
+            "⠀⠀⠀no era tan interesante..\n"
+            "⠀⠀⠀(◞‸ ◟)"
         )
 
     elif resultado == "ganar_mitad":
@@ -1844,7 +1848,8 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad + (cantidad // 2)
 
         texto_resultado = (
-            "ʕ·ᴥ·ʔ ¡Koya te dio un pequeño premio!"
+            "ʕ·ᴥ·ʔ ¡Koya te dio un\n"
+            "⠀⠀⠀pequeño premio!"
         )
 
     elif resultado == "duplicar":
@@ -1853,7 +1858,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         texto_resultado = (
             "٩(ˊᗜˋ )و ｡ ¡qué suerte! \n"
-            "duplicaste tu apuesta."
+            "⠀⠀⠀duplicaste tu apuesta."
         )
 
     else:
@@ -1861,8 +1866,9 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         obtenido = cantidad * 3
 
         texto_resultado = (
-            "𖦹 ׂ 𓈒🐇 ೀ ¡A COOKY LE AGRADAS! \n"
-            "premio x3."
+            "𖦹 ׂ 𓈒🐇 ೀ\n"
+            "⠀⠀⠀¡A COOKY LE AGRADAS! \n"
+            "⠀⠀⠀premio x3."
         )
 
     # -----------------------------------------
