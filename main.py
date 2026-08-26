@@ -196,18 +196,32 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mensaje_bloqueo(update)
         return
     mensaje = """⠀
-/juegoinfo → ¿cómo funciona la dinámica?
+/juegoinfo → ¿cómo funcionan las dinámicas?
 /abrir → empezar a jugar
 ❕ : solo un intento por día
+/arriesgar → apostar kooins
 /total → ver tu acumulado
+/movbankooins → pdf de tus movimientos
 /start → bienvenida
 /cmds → lista de comandos
 
-❕ : comandos para admins
+❕ : comandos para admins (general)
+/rifa → configurar una rifa
+/rifainfo → información de la rifa
+/startrifa → iniciar
+/cancelarrifa /cancelarjackpot
+/jackpot → configurar jackpot
+/startjackpot → iniciar
+/verintento → intentos de jugadorea
+
+❕ : comandos especiales
 /ranking → ¿cuánto lleva cada participante?
 /reset → reiniciar puntos
+/limpiarrifa → borrar registros de rifas
 /setbolsas → cambiar valores
 /kooins → dar kooins a un participante
+/koala → iniciar el koala
+/darintento → dar intentos en arriesgar
 
 ๑ cada comando funciona también con punto "." al inicio.
 ⠀"""
@@ -222,7 +236,7 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = """⠀⠀⠀
  ׄ𑊑ᰍㅤׄinfo :
 
-๑ solo tienes un intento por día.
+๑ con /abrir solo tienes un intento por día.
 ๑ los valores se cambian diariamente.
 🐰 ! podrás encontrar cajitas con un conejo dorado (identificado con el emoji de conejo al recibir tus kooins); lo que significa más puntos.
 ๑ si intentas jugar antes de que se actualicen las cajitas, el bot te avisará y no gastarás tu intento.
