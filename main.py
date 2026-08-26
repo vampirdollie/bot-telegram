@@ -504,8 +504,9 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if not row:
                 await update.message.reply_text(
-                    "ese usuario aún no ha jugado, "
-                    "no puedo darle kooins. ૮◞ ◟ ა"
+                    "ese usuario aún no ha jugado, \n"
+                    "no puedo darle kooins. ૮◞ ◟ ა\n"
+                    "pidele que haga el juego diario."
                 )
                 return
 
@@ -526,8 +527,9 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if not row:
                 await update.message.reply_text(
-                    "ese usuario aún no ha jugado, "
-                    "no puedo modificar sus kooins. ૮◞ ◟ ა"
+                    "ese usuario aún no ha jugado, \n"
+                    "no puedo modificar sus kooins. ૮◞ ◟ ა\n"
+                    "pidele que haga el juego diario."
                 )
                 return
 
@@ -2976,7 +2978,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not objetivo.startswith("@"):
             await update.message.reply_text(
                 "debes indicar el usuario con @.\n"
-                "ejemplo: /mbankooins @usuario"
+                "ejemplo: /movbankooins @usuario"
             )
             return
 
@@ -3034,9 +3036,9 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             "usa el formato:\n"
-            "/mbankooins\n\n"
+            "/movbankooins\n\n"
             "o, si eres admin:\n"
-            "/mbankooins @usuario"
+            "/movbankooins @usuario"
         )
         return
 
@@ -3177,7 +3179,7 @@ app.add_handler(CommandHandler("verintentos", verintentos))
 app.add_handler(CommandHandler("jackpot", jackpot))
 app.add_handler(CommandHandler("startjackpot", startjackpot))
 app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
-app.add_handler(CommandHandler("mbankooins", bankooins))
+app.add_handler(CommandHandler("movbankooins", bankooins))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 app.run_webhook(
