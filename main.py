@@ -26,8 +26,21 @@ BLOQUEADOS = [
     "6813476131"  # cat
 ]
 
+ADMINS = {
+    "7740467368", # min
+    "8124589828", # leis
+    "1296115044", # bel
+    "5515948854", # paris
+    "6905064136", # valu
+    "965030471" # pau
+}
+
 def esta_bloqueado(user_id):
     return str(user_id) in BLOQUEADOS
+
+def es_admin(user_id):
+    user_id = str(user_id)
+    return user_id in SUPERADMINS or user_id in ADMINS
 
 # --- Conexión a Postgres ---
 conn = psycopg2.connect(DATABASE_URL)
@@ -77,7 +90,7 @@ async def mensaje_bloqueo(update: Update):
 # --- START ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    if user_id in BLOQUEADOS:
+    if user_id in BLOQUEADOS and user_id not in ADMINS:
         await mensaje_bloqueo(update)
         return
     mensaje_start = """⠀⠀⠀ ⠀⠀⠀¡holi, personita! (ृ '꒳' ृ)
@@ -93,7 +106,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- CMDS ---
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    if user_id in BLOQUEADOS:
+    if user_id in BLOQUEADOS and user_id not in ADMINS:
         await mensaje_bloqueo(update)
         return
     mensaje = """⠀
@@ -117,7 +130,7 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- JUEGOINFO ---
 async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    if user_id in BLOQUEADOS:
+    if user_id in BLOQUEADOS and user_id not in ADMINS:
         await mensaje_bloqueo(update)
         return
     mensaje = """⠀⠀⠀
@@ -904,7 +917,7 @@ async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         await update.message.reply_text(
             "¡solo los admin autorizados pueden iniciar una rifa!"
         )
@@ -1151,7 +1164,7 @@ async def participar_rifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     # Buscar la rifa activa
@@ -1205,7 +1218,7 @@ async def rifainfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     # Buscar la rifa activa
@@ -1289,7 +1302,7 @@ async def startrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     # Buscar la rifa activa
@@ -1361,7 +1374,7 @@ async def cancelarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ganadoresrobux(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     cur.execute("""
@@ -1969,7 +1982,7 @@ async def darintento(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def verintentos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     if len(context.args) != 1:
@@ -2046,7 +2059,10 @@ async def verintentos(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
+        await update.message.reply_text(
+            "¡solo los admin autorizados pueden iniciar una rifa!"
+        )
         return
 
     # Formato:
@@ -2299,7 +2315,7 @@ async def participar_jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     # Buscar jackpot activo
@@ -2389,7 +2405,7 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    if user_id not in SUPERADMINS:
+    if not es_admin(user_id):
         return
 
     # Buscar jackpot activo
