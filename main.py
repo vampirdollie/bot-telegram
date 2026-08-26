@@ -1829,7 +1829,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀𖹭 saldo antes: {saldo_antes} kooins\n"
         f"⠀⠀⠀✿ arriesgaste: {cantidad} kooins\n"
         f"⠀⠀⠀✿ obtuviste: {obtenido} kooins\n"
-        f"⠀⠀⠀𖹭 saldo después: {saldo_despues} kooins**\n\n"
+        f"⠀⠀⠀𖹭 saldo después: {saldo_despues} kooins\n\n"
 
         f"⠀⠀⠀intentos restantes: "
         f"{restantes}/{limite}",
@@ -2133,7 +2133,7 @@ async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=int(RIFA_CHAT_ID),
         text=(
             "⠀⠀⠀\n"
-            "⠀⠀ ⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
+            "⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n\n"
             "⠀⠀⠀ el pozo ha sido abierto...\n\n"
             f"⠀⠀⠀🎟️ entrada: {costo} kooins\n"
             f"⠀⠀⠀🐰ྀི coortesía: {aporte_admin} kooins\n"
@@ -2377,7 +2377,7 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"⠀⠀⠀\n"
-        f"⠀⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n"
+        f"⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n"
         f"⠀๑ el pozo eligió a su favorito...\n\n"
         f"⠀⠀⠀𖹭 {ganador_username}\n\n"
         f"⠀⠀⠀๑ premio: {pozo} kooins\n"
