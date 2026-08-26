@@ -1593,13 +1593,12 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀\n"
         f"⠀⠀⠀𝗞𝗢𝗬𝗔'𝗦 𝗥𝗜𝗦𝗞、୧ ‧ ₊˚ 🎱 ⋅ ☆ \n\n"
         f"⠀⠀⠀{username}, estás por arriesgar...\n"
-        f"⠀⠀⠀**{cantidad} kooins**.\n\n"
+        f"⠀⠀⠀{cantidad} kooins.\n\n"
         f"⠀⠀⠀puedes ganar, perder o tener suerte...\n"
         f"⠀⠀⠀¿te atreves? 𖹭\n\n"
         f"⠀⠀⠀intentos restantes: "
         f"{limite - intentos}/{limite}",
         reply_markup=reply_markup,
-        parse_mode="Markdown"
     )
 
 
@@ -1833,8 +1832,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀𖹭 saldo después: **{saldo_despues} kooins**\n\n"
 
         f"⠀⠀⠀intentos restantes: "
-        f"**{restantes}/{limite}**",
-        parse_mode="Markdown"
+        f"{restantes}/{limite}",
     )
 
 # --- DAR INTENTOS DE RIESGO (solo admin) ---
