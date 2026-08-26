@@ -2879,7 +2879,28 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✿ saldo actual: {saldo_actual} kooins"
         )
 
-    await update.message.reply_text(mensaje)
+    # ==========================================
+    # GENERAR Y ENVIAR PDF
+    # ==========================================
+
+    archivo_pdf = generar_pdf_bankooins(
+        username,
+        saldo_actual,
+        movimientos
+    )
+
+    with open(archivo_pdf, "rb") as archivo:
+        await update.message.reply_document(
+            document=archivo,
+            filename=f"bankooins_{username.replace('@', '')}.pdf",
+            caption=(
+                "⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱\n\n"
+                f"𖹭 historial de {username}\n"
+                f"✿ saldo actual: {saldo_actual} kooins\n\n"
+                "⏤⏤⏤⏤⏤\n"
+                "aquí tienes su registro completo. 𖹭"
+            )
+        )
 
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
