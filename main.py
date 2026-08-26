@@ -2499,7 +2499,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not objetivo.startswith("@"):
             await update.message.reply_text(
                 "debes indicar el usuario con @.\n"
-                "ejemplo: /bankooins @usuario"
+                "ejemplo: /mbankooins @usuario"
             )
             return
 
@@ -2557,9 +2557,9 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             "usa el formato:\n"
-            "/bankooins\n\n"
+            "/mbankooins\n\n"
             "o, si eres admin:\n"
-            "/bankooins @usuario"
+            "/mbankooins @usuario"
         )
         return
 
@@ -2679,7 +2679,7 @@ app.add_handler(CommandHandler("verintentos", verintentos))
 app.add_handler(CommandHandler("jackpot", jackpot))
 app.add_handler(CommandHandler("startjackpot", startjackpot))
 app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
-app.add_handler(CommandHandler("bankooins", bankooins))
+app.add_handler(CommandHandler("mbankooins", bankooins))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 app.run_webhook(
