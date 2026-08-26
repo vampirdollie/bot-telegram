@@ -1820,7 +1820,9 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         texto_resultado = (
             "que mala suerte... \n"
-            "ni siquiera nosotros sabemos que decir al respecto. ( ´･･)ﾉ(._.`)"
+            "⠀⠀⠀ni siquiera nosotros\n"
+            "⠀⠀⠀sabemos que decir al respecto.\n"
+            "⠀⠀⠀( ´･･)ﾉ(._.`)"
         )
 
     elif resultado == "mitad":
