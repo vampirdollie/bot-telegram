@@ -3,10 +3,86 @@ from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQuer
 import datetime, os, random
 from zoneinfo import ZoneInfo
 import psycopg2
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    PageBreak
+)
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+pdfmetrics.registerFont(
+    TTFont("DejaVu", "fonts/DejaVuSans.ttf")
+)
+
+pdfmetrics.registerFont(
+    TTFont("DejaVu-Bold", "fonts/DejaVuSans-Bold.ttf")
+)
+
+def crear_estilos_pdf():
+    estilos = getSampleStyleSheet()
+
+    titulo = ParagraphStyle(
+        "TituloPDF",
+        parent=estilos["Title"],
+        fontName="DejaVu-Bold",
+        fontSize=22,
+        leading=26,
+        alignment=TA_CENTER,
+        spaceAfter=10
+    )
+
+    subtitulo = ParagraphStyle(
+        "SubtituloPDF",
+        parent=estilos["Normal"],
+        fontName="DejaVu",
+        fontSize=10,
+        leading=14,
+        alignment=TA_CENTER,
+        textColor=colors.grey,
+        spaceAfter=18
+    )
+
+    encabezado = ParagraphStyle(
+        "EncabezadoPDF",
+        parent=estilos["Normal"],
+        fontName="DejaVu-Bold",
+        fontSize=10,
+        leading=13,
+        alignment=TA_LEFT
+    )
+
+    normal = ParagraphStyle(
+        "NormalPDF",
+        parent=estilos["Normal"],
+        fontName="DejaVu",
+        fontSize=9,
+        leading=12
+    )
+
+    normal_centrado = ParagraphStyle(
+        "NormalCentradoPDF",
+        parent=normal,
+        alignment=TA_CENTER
+    )
+
+    return {
+        "titulo": titulo,
+        "subtitulo": subtitulo,
+        "encabezado": encabezado,
+        "normal": normal,
+        "normal_centrado": normal_centrado
+    }
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -2488,109 +2564,146 @@ def generar_pdf_bankooins(username, saldo_actual, movimientos):
 
     ancho, alto = A4
 
-    pdf = canvas.Canvas(nombre_archivo, pagesize=A4)
-
     # ==========================================
-    # COLORES PASTEL
+    # COLORES
     # ==========================================
 
     fondo = colors.HexColor("#FFF9FC")
     rosa = colors.HexColor("#E8B7C8")
     rosa_claro = colors.HexColor("#F6DCE5")
+    rosa_muy_claro = colors.HexColor("#FDF0F5")
     texto = colors.HexColor("#51454B")
     gris = colors.HexColor("#8B8085")
+    blanco = colors.white
     verde = colors.HexColor("#A8C8B0")
-
-    # Fondo
-    pdf.setFillColor(fondo)
-    pdf.rect(0, 0, ancho, alto, fill=1, stroke=0)
+    rojo = colors.HexColor("#D99AA8")
 
     # ==========================================
-    # ENCABEZADO
+    # DOCUMENTO
     # ==========================================
 
-    pdf.setFillColor(rosa)
+    pdf = canvas.Canvas(nombre_archivo, pagesize=A4)
+
+    # ==========================================
+    # FUNCIONES AUXILIARES
+    # ==========================================
+
+    def dibujar_fondo():
+        pdf.setFillColor(fondo)
+        pdf.rect(
+            0,
+            0,
+            ancho,
+            alto,
+            fill=1,
+            stroke=0
+        )
+
+    def dibujar_pie():
+        pdf.setFillColor(gris)
+        pdf.setFont("DejaVu", 7)
+
+        pdf.drawCentredString(
+            ancho / 2,
+            1 * cm,
+            "registro generado por Cooky"
+        )
+
+    def dibujar_encabezado():
+
+        # Caja superior
+        pdf.setFillColor(rosa)
+        pdf.roundRect(
+            1.3 * cm,
+            alto - 4.4 * cm,
+            ancho - 2.6 * cm,
+            2.7 * cm,
+            14,
+            fill=1,
+            stroke=0
+        )
+
+        # Título
+        pdf.setFillColor(blanco)
+        pdf.setFont("DejaVu-Bold", 21)
+
+        pdf.drawCentredString(
+            ancho / 2,
+            alto - 2.55 * cm,
+            "BANKOOINS"
+        )
+
+        # Subtítulo
+        pdf.setFont("DejaVu", 9)
+
+        pdf.drawCentredString(
+            ancho / 2,
+            alto - 3.25 * cm,
+            "resumen de tu cuenta"
+        )
+
+    # ==========================================
+    # PRIMERA PÁGINA
+    # ==========================================
+
+    dibujar_fondo()
+    dibujar_encabezado()
+
+    y = alto - 5.3 * cm
+
+    # ==========================================
+    # USUARIO
+    # ==========================================
+
+    pdf.setFillColor(texto)
+    pdf.setFont("DejaVu-Bold", 10)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        f"Usuario: {username}"
+    )
+
+    y -= 0.8 * cm
+
+    # ==========================================
+    # TARJETA DE SALDO
+    # ==========================================
+
+    pdf.setFillColor(rosa_muy_claro)
+
     pdf.roundRect(
-        1.3 * cm,
-        alto - 4.2 * cm,
-        ancho - 2.6 * cm,
-        2.5 * cm,
+        1.5 * cm,
+        y - 2.2 * cm,
+        ancho - 3 * cm,
+        2.1 * cm,
         12,
         fill=1,
         stroke=0
     )
 
-    pdf.setFillColor(colors.white)
-    pdf.setFont("Helvetica-Bold", 20)
+    pdf.setFillColor(gris)
+    pdf.setFont("DejaVu-Bold", 8)
 
     pdf.drawCentredString(
         ancho / 2,
-        alto - 2.7 * cm,
-        "BANKOOINS"
+        y - 0.65 * cm,
+        "SALDO ACTUAL"
     )
 
-    pdf.setFont("Helvetica", 10)
+    pdf.setFillColor(texto)
+    pdf.setFont("DejaVu-Bold", 19)
 
     pdf.drawCentredString(
         ancho / 2,
-        alto - 3.35 * cm,
-        "registro de movimientos"
+        y - 1.45 * cm,
+        f"{saldo_actual:,} KOOINS"
     )
 
-    # ==========================================
-    # INFORMACIÓN DEL USUARIO
-    # ==========================================
-
-    y = alto - 5.3 * cm
-
-    pdf.setFillColor(texto)
-    pdf.setFont("Helvetica-Bold", 11)
-
-    pdf.drawString(
-        1.5 * cm,
-        y,
-        f"𖹭 Usuario: {username}"
-    )
-
-    y -= 0.7 * cm
-
-    pdf.setFont("Helvetica-Bold", 12)
-
-    pdf.drawString(
-        1.5 * cm,
-        y,
-        f"✿ Saldo actual: {saldo_actual} kooins"
-    )
+    y -= 2.9 * cm
 
     # ==========================================
-    # SEPARADOR
-    # ==========================================
-
-    y -= 0.8 * cm
-
-    pdf.setStrokeColor(rosa_claro)
-    pdf.line(
-        1.5 * cm,
-        y,
-        ancho - 1.5 * cm,
-        y
-    )
-
-    y -= 0.8 * cm
-
-    pdf.setFillColor(texto)
-    pdf.setFont("Helvetica-Bold", 13)
-
-    pdf.drawString(
-        1.5 * cm,
-        y,
-        "𖹭 Historial de movimientos"
-    )
-
-    y -= 0.8 * cm
-
-    # ==========================================
-    # TOTALES
+    # RESUMEN
     # ==========================================
 
     ganados = 0
@@ -2601,130 +2714,242 @@ def generar_pdf_bankooins(username, saldo_actual, movimientos):
         if cantidad > 0:
             ganados += cantidad
         else:
-            gastados += cantidad
+            gastados += abs(cantidad)
 
-    pdf.setFont("Helvetica", 10)
+    # Título
+    pdf.setFillColor(texto)
+    pdf.setFont("DejaVu-Bold", 12)
 
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        "Resumen"
+    )
+
+    y -= 0.65 * cm
+
+    # Tarjeta Kooins ganados
     pdf.setFillColor(verde)
 
-    pdf.drawString(
+    pdf.roundRect(
         1.5 * cm,
-        y,
-        f"✿ Kooins ganados: +{ganados}"
+        y - 1.35 * cm,
+        7.6 * cm,
+        1.25 * cm,
+        10,
+        fill=1,
+        stroke=0
     )
 
-    y -= 0.5 * cm
+    pdf.setFillColor(blanco)
+    pdf.setFont("DejaVu-Bold", 8)
+
+    pdf.drawString(
+        1.9 * cm,
+        y - 0.48 * cm,
+        "KOOINS GANADOS"
+    )
+
+    pdf.setFont("DejaVu-Bold", 13)
+
+    pdf.drawString(
+        1.9 * cm,
+        y - 1.0 * cm,
+        f"+{ganados:,}"
+    )
+
+    # Tarjeta Kooins gastados
+    pdf.setFillColor(rosa_claro)
+
+    pdf.roundRect(
+        9.5 * cm,
+        y - 1.35 * cm,
+        7.0 * cm,
+        1.25 * cm,
+        10,
+        fill=1,
+        stroke=0
+    )
 
     pdf.setFillColor(texto)
+    pdf.setFont("DejaVu-Bold", 8)
+
+    pdf.drawString(
+        9.9 * cm,
+        y - 0.48 * cm,
+        "KOOINS GASTADOS"
+    )
+
+    pdf.setFont("DejaVu-Bold", 13)
+
+    pdf.drawString(
+        9.9 * cm,
+        y - 1.0 * cm,
+        f"-{gastados:,}"
+    )
+
+    y -= 2.0 * cm
+
+    # ==========================================
+    # TÍTULO DEL HISTORIAL
+    # ==========================================
+
+    pdf.setFillColor(texto)
+    pdf.setFont("DejaVu-Bold", 12)
 
     pdf.drawString(
         1.5 * cm,
         y,
-        f"✿ Kooins gastados: {gastados}"
+        "Historial de movimientos"
     )
 
-    y -= 0.8 * cm
+    y -= 0.75 * cm
 
-    pdf.setStrokeColor(rosa_claro)
-    pdf.line(
+    # ==========================================
+    # ENCABEZADO DE TABLA
+    # ==========================================
+
+    pdf.setFillColor(rosa)
+
+    pdf.roundRect(
         1.5 * cm,
-        y,
-        ancho - 1.5 * cm,
-        y
+        y - 0.75 * cm,
+        ancho - 3 * cm,
+        0.7 * cm,
+        6,
+        fill=1,
+        stroke=0
     )
 
-    y -= 0.7 * cm
+    pdf.setFillColor(blanco)
+    pdf.setFont("DejaVu-Bold", 8)
+
+    pdf.drawString(
+        1.8 * cm,
+        y - 0.48 * cm,
+        "CANTIDAD"
+    )
+
+    pdf.drawString(
+        5.0 * cm,
+        y - 0.48 * cm,
+        "MOVIMIENTO"
+    )
+
+    pdf.drawString(
+        12.0 * cm,
+        y - 0.48 * cm,
+        "FECHA"
+    )
+
+    y -= 0.95 * cm
 
     # ==========================================
     # MOVIMIENTOS
     # ==========================================
 
-    pdf.setFont("Helvetica-Bold", 9)
-    pdf.setFillColor(gris)
+    pdf.setFont("DejaVu", 8)
 
-    pdf.drawString(
-        1.5 * cm,
-        y,
-        "CANTIDAD"
-    )
+    for indice, (cantidad, tipo, fecha) in enumerate(movimientos):
 
-    pdf.drawString(
-        4.2 * cm,
-        y,
-        "DINÁMICA"
-    )
+        # Nueva página
+        if y < 2.2 * cm:
 
-    pdf.drawString(
-        10.5 * cm,
-        y,
-        "FECHA"
-    )
-
-    y -= 0.5 * cm
-
-    pdf.setFont("Helvetica", 8)
-    pdf.setFillColor(texto)
-
-    for cantidad, tipo, fecha in movimientos:
-
-        # Crear nueva página si ya no hay espacio
-        if y < 2 * cm:
+            dibujar_pie()
 
             pdf.showPage()
 
-            pdf.setFillColor(fondo)
-            pdf.rect(
-                0,
-                0,
-                ancho,
-                alto,
+            dibujar_fondo()
+
+            y = alto - 2 * cm
+
+            # Encabezado pequeño en páginas siguientes
+            pdf.setFillColor(rosa)
+            pdf.roundRect(
+                1.5 * cm,
+                y - 0.9 * cm,
+                ancho - 3 * cm,
+                0.75 * cm,
+                8,
                 fill=1,
                 stroke=0
             )
 
-            y = alto - 2 * cm
+            pdf.setFillColor(blanco)
+            pdf.setFont("DejaVu-Bold", 9)
 
-            pdf.setFillColor(texto)
-            pdf.setFont("Helvetica", 8)
+            pdf.drawCentredString(
+                ancho / 2,
+                y - 0.5 * cm,
+                "HISTORIAL DE MOVIMIENTOS"
+            )
 
-        signo = "+" if cantidad > 0 else ""
+            y -= 1.3 * cm
 
+        # Fondo alternado
+        if indice % 2 == 0:
+            pdf.setFillColor(rosa_muy_claro)
+
+            pdf.roundRect(
+                1.5 * cm,
+                y - 0.58 * cm,
+                ancho - 3 * cm,
+                0.52 * cm,
+                4,
+                fill=1,
+                stroke=0
+            )
+
+        # Cantidad
+        if cantidad > 0:
+            pdf.setFillColor(verde)
+            signo = "+"
+        else:
+            pdf.setFillColor(rojo)
+            signo = ""
+
+        pdf.setFont("DejaVu-Bold", 8)
+
+        pdf.drawString(
+            1.8 * cm,
+            y - 0.37 * cm,
+            f"{signo}{cantidad:,}"
+        )
+
+        # Movimiento
+        pdf.setFillColor(texto)
+        pdf.setFont("DejaVu", 8)
+
+        pdf.drawString(
+            5.0 * cm,
+            y - 0.37 * cm,
+            str(tipo)
+        )
+
+        # Fecha
         fecha_formateada = fecha.strftime(
             "%d/%m/%Y %H:%M"
         )
 
-        pdf.drawString(
-            1.5 * cm,
-            y,
-            f"{signo}{cantidad}"
-        )
+        pdf.setFillColor(gris)
 
         pdf.drawString(
-            4.2 * cm,
-            y,
-            tipo
-        )
-
-        pdf.drawString(
-            10.5 * cm,
-            y,
+            12.0 * cm,
+            y - 0.37 * cm,
             fecha_formateada
         )
 
-        y -= 0.55 * cm
+        y -= 0.68 * cm
 
     # ==========================================
     # PIE DE PÁGINA
     # ==========================================
 
-    pdf.setFillColor(gris)
-    pdf.setFont("Helvetica", 7)
+    dibujar_pie()
 
-    pdf.drawCentredString(
-        ancho / 2,
-        1 * cm,
-        "⏤⏤⏤  registro generado por Cooky  ⏤⏤⏤"
-    )
+    # ==========================================
+    # GUARDAR
+    # ==========================================
 
     pdf.save()
 
