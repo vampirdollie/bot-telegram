@@ -3,6 +3,10 @@ from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQuer
 import datetime, os, random
 from zoneinfo import ZoneInfo
 import psycopg2
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.units import cm
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -2477,6 +2481,254 @@ async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀el pozo ha quedado cerrado,\n"
         "⠀⠀puedes iniciar otro cuando quieras. 𖹭"
     )
+
+# --- GENERAR PDF DE BANKOOINS ---
+def generar_pdf_bankooins(username, saldo_actual, movimientos):
+    nombre_archivo = f"/tmp/bankooins_{username.replace('@', '')}.pdf"
+
+    ancho, alto = A4
+
+    pdf = canvas.Canvas(nombre_archivo, pagesize=A4)
+
+    # ==========================================
+    # COLORES PASTEL
+    # ==========================================
+
+    fondo = colors.HexColor("#FFF9FC")
+    rosa = colors.HexColor("#E8B7C8")
+    rosa_claro = colors.HexColor("#F6DCE5")
+    texto = colors.HexColor("#51454B")
+    gris = colors.HexColor("#8B8085")
+    verde = colors.HexColor("#A8C8B0")
+
+    # Fondo
+    pdf.setFillColor(fondo)
+    pdf.rect(0, 0, ancho, alto, fill=1, stroke=0)
+
+    # ==========================================
+    # ENCABEZADO
+    # ==========================================
+
+    pdf.setFillColor(rosa)
+    pdf.roundRect(
+        1.3 * cm,
+        alto - 4.2 * cm,
+        ancho - 2.6 * cm,
+        2.5 * cm,
+        12,
+        fill=1,
+        stroke=0
+    )
+
+    pdf.setFillColor(colors.white)
+    pdf.setFont("Helvetica-Bold", 20)
+
+    pdf.drawCentredString(
+        ancho / 2,
+        alto - 2.7 * cm,
+        "BANKOOINS"
+    )
+
+    pdf.setFont("Helvetica", 10)
+
+    pdf.drawCentredString(
+        ancho / 2,
+        alto - 3.35 * cm,
+        "registro de movimientos"
+    )
+
+    # ==========================================
+    # INFORMACIÓN DEL USUARIO
+    # ==========================================
+
+    y = alto - 5.3 * cm
+
+    pdf.setFillColor(texto)
+    pdf.setFont("Helvetica-Bold", 11)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        f"𖹭 Usuario: {username}"
+    )
+
+    y -= 0.7 * cm
+
+    pdf.setFont("Helvetica-Bold", 12)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        f"✿ Saldo actual: {saldo_actual} kooins"
+    )
+
+    # ==========================================
+    # SEPARADOR
+    # ==========================================
+
+    y -= 0.8 * cm
+
+    pdf.setStrokeColor(rosa_claro)
+    pdf.line(
+        1.5 * cm,
+        y,
+        ancho - 1.5 * cm,
+        y
+    )
+
+    y -= 0.8 * cm
+
+    pdf.setFillColor(texto)
+    pdf.setFont("Helvetica-Bold", 13)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        "𖹭 Historial de movimientos"
+    )
+
+    y -= 0.8 * cm
+
+    # ==========================================
+    # TOTALES
+    # ==========================================
+
+    ganados = 0
+    gastados = 0
+
+    for cantidad, tipo, fecha in movimientos:
+
+        if cantidad > 0:
+            ganados += cantidad
+        else:
+            gastados += cantidad
+
+    pdf.setFont("Helvetica", 10)
+
+    pdf.setFillColor(verde)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        f"✿ Kooins ganados: +{ganados}"
+    )
+
+    y -= 0.5 * cm
+
+    pdf.setFillColor(texto)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        f"✿ Kooins gastados: {gastados}"
+    )
+
+    y -= 0.8 * cm
+
+    pdf.setStrokeColor(rosa_claro)
+    pdf.line(
+        1.5 * cm,
+        y,
+        ancho - 1.5 * cm,
+        y
+    )
+
+    y -= 0.7 * cm
+
+    # ==========================================
+    # MOVIMIENTOS
+    # ==========================================
+
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.setFillColor(gris)
+
+    pdf.drawString(
+        1.5 * cm,
+        y,
+        "CANTIDAD"
+    )
+
+    pdf.drawString(
+        4.2 * cm,
+        y,
+        "DINÁMICA"
+    )
+
+    pdf.drawString(
+        10.5 * cm,
+        y,
+        "FECHA"
+    )
+
+    y -= 0.5 * cm
+
+    pdf.setFont("Helvetica", 8)
+    pdf.setFillColor(texto)
+
+    for cantidad, tipo, fecha in movimientos:
+
+        # Crear nueva página si ya no hay espacio
+        if y < 2 * cm:
+
+            pdf.showPage()
+
+            pdf.setFillColor(fondo)
+            pdf.rect(
+                0,
+                0,
+                ancho,
+                alto,
+                fill=1,
+                stroke=0
+            )
+
+            y = alto - 2 * cm
+
+            pdf.setFillColor(texto)
+            pdf.setFont("Helvetica", 8)
+
+        signo = "+" if cantidad > 0 else ""
+
+        fecha_formateada = fecha.strftime(
+            "%d/%m/%Y %H:%M"
+        )
+
+        pdf.drawString(
+            1.5 * cm,
+            y,
+            f"{signo}{cantidad}"
+        )
+
+        pdf.drawString(
+            4.2 * cm,
+            y,
+            tipo
+        )
+
+        pdf.drawString(
+            10.5 * cm,
+            y,
+            fecha_formateada
+        )
+
+        y -= 0.55 * cm
+
+    # ==========================================
+    # PIE DE PÁGINA
+    # ==========================================
+
+    pdf.setFillColor(gris)
+    pdf.setFont("Helvetica", 7)
+
+    pdf.drawCentredString(
+        ancho / 2,
+        1 * cm,
+        "⏤⏤⏤  registro generado por Cooky  ⏤⏤⏤"
+    )
+
+    pdf.save()
+
+    return nombre_archivo
 
 # --- BANKOOINS ---
 async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
