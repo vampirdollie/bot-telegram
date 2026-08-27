@@ -217,7 +217,7 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /cancelarrifa /cancelarjackpot
 /jackpot → configurar jackpot
 /startjackpot → iniciar
-/verintento → intentos de jugadorea
+/verintento → intentos de jugadores
 ⠀""",
 
         """⠀
@@ -286,7 +286,7 @@ async def cambiar_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /cancelarrifa /cancelarjackpot
 /jackpot → configurar jackpot
 /startjackpot → iniciar
-/verintento → intentos de jugadorea
+/verintento → intentos de jugadores
 ⠀""",
 
         """⠀
