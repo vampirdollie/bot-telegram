@@ -192,10 +192,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- CMDS ---
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in BLOQUEADOS and user_id not in ADMINS:
         await mensaje_bloqueo(update)
         return
-    mensaje = """⠀
+
+    paginas = [
+        """⠀
 /juegoinfo → ¿cómo funcionan las dinámicas?
 /abrir → empezar a jugar
 ❕ : solo un intento por día
@@ -204,7 +207,9 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /movbankooins → pdf de tus movimientos
 /start → bienvenida
 /cmds → lista de comandos
+⠀""",
 
+        """⠀
 ❕ : comandos para admins (general)
 /rifa → configurar una rifa
 /rifainfo → información de la rifa
@@ -213,7 +218,9 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /jackpot → configurar jackpot
 /startjackpot → iniciar
 /verintento → intentos de jugadorea
+⠀""",
 
+        """⠀
 ❕ : comandos especiales
 /ranking → ¿cuánto lleva cada participante?
 /reset → reiniciar puntos
@@ -223,9 +230,129 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /koala → iniciar el koala
 /darintento → dar intentos en arriesgar
 
-๑ cada comando funciona también con punto "." al inicio.
+๑ unos comandos funcionan también con punto "." al inicio.
 ⠀"""
-    await update.message.reply_text(mensaje)
+    ]
+
+    teclado = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data="cmds:0"
+            ),
+            InlineKeyboardButton(
+                "1 / 3",
+                callback_data="cmds:pagina"
+            ),
+            InlineKeyboardButton(
+                "❀",
+                callback_data="cmds:1"
+            )
+        ]
+    ])
+
+    await update.message.reply_text(
+        paginas[0],
+        reply_markup=teclado
+    )
+
+# --- CAMBIAR PAGINA DE CMDS ---
+async def cambiar_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS and user_id not in ADMINS:
+        return
+
+    paginas = [
+        """⠀
+/juegoinfo → ¿cómo funcionan las dinámicas?
+/abrir → empezar a jugar
+❕ : solo un intento por día
+/arriesgar → apostar kooins
+/total → ver tu acumulado
+/movbankooins → pdf de tus movimientos
+/start → bienvenida
+/cmds → lista de comandos
+⠀""",
+
+        """⠀
+❕ : comandos para admins (general)
+/rifa → configurar una rifa
+/rifainfo → información de la rifa
+/startrifa → iniciar
+/cancelarrifa /cancelarjackpot
+/jackpot → configurar jackpot
+/startjackpot → iniciar
+/verintento → intentos de jugadorea
+⠀""",
+
+        """⠀
+❕ : comandos especiales
+/ranking → ¿cuánto lleva cada participante?
+/reset → reiniciar puntos
+/limpiarrifa → borrar registros de rifas
+/setbolsas → cambiar valores
+/kooins → dar kooins a un participante
+/koala → iniciar el koala
+/darintento → dar intentos en arriesgar
+
+๑ unos comandos funcionan también con punto "." al inicio.
+⠀"""
+    ]
+
+    pagina = int(query.data.split(":")[1])
+
+    botones = []
+
+    # Botón atrás
+    if pagina > 0:
+        botones.append(
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data=f"cmds:{pagina - 1}"
+            )
+        )
+    else:
+        botones.append(
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data="cmds:0"
+            )
+        )
+
+    # Número de página
+    botones.append(
+        InlineKeyboardButton(
+            f"{pagina + 1} / {len(paginas)}",
+            callback_data="cmds:pagina"
+        )
+    )
+
+    # Botón siguiente
+    if pagina < len(paginas) - 1:
+        botones.append(
+            InlineKeyboardButton(
+                "❀",
+                callback_data=f"cmds:{pagina + 1}"
+            )
+        )
+    else:
+        botones.append(
+            InlineKeyboardButton(
+                "❀",
+                callback_data=f"cmds:{len(paginas) - 1}"
+            )
+        )
+
+    teclado = InlineKeyboardMarkup([botones])
+
+    await query.edit_message_text(
+        paginas[pagina],
+        reply_markup=teclado
+    )
 
 # --- JUEGOINFO ---
 async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3161,6 +3288,12 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("cmds", cmds))
+app.add_handler(
+    CallbackQueryHandler(
+        cambiar_cmds,
+        pattern=r"^cmds:"
+    )
+)
 app.add_handler(CommandHandler("juegoinfo", juegoinfo))
 app.add_handler(CommandHandler("abrir", abrir))
 app.add_handler(CommandHandler("total", total))
