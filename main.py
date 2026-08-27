@@ -357,10 +357,18 @@ async def cambiar_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- JUEGOINFO ---
 async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in BLOQUEADOS and user_id not in ADMINS:
         await mensaje_bloqueo(update)
         return
-    mensaje = """⠀⠀⠀
+
+    paginas = [
+
+        # ==============================
+        # PÁGINA 1
+        # ==============================
+
+        """⠀⠀⠀
  ׄ𑊑ᰍㅤׄinfo :
 
 ๑ con /abrir solo tienes un intento por día.
@@ -370,8 +378,173 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ๑ la fortuna acumulada se mide en 𝗸𝗼𝗼𝗶𝗻𝘀.
 
 ¡diviértete y prueba tu suerte cada día! ⊹ ˖ Ი𐑼
+⠀⠀⠀""",
+
+        # ==============================
+        # PÁGINA 2
+        # ==============================
+
+        """⠀⠀⠀
+ ׄ𑊑ᰍㅤׄinfo :
+
+๑ con /arriesgar puedes apostar parte de tus 𝗸𝗼𝗼𝗶𝗻𝘀.
+๑ tienes 3 intentos diarios para probar tu suerte.
+๑ puedes conseguir intentos extra si un admin decide regalarte algunos.
+๑ dependiendo del resultado, puedes perder, recuperar, ganar más, duplicar o incluso triplicar tu apuesta.
+
+๑ en las rifas puedes conseguir un número a cambio de 𝗸𝗼𝗼𝗶𝗻𝘀.
+๑ solo puedes conseguir un número por rifa.
+๑ cuando la rifa termina, se elige un número ganador al azar y su dueño recibe el premio en robux.
+
+⠀⠀⠀""",
+
+        # ==============================
+        # PÁGINA 3
+        # ==============================
+
+        """⠀⠀⠀
+ ׄ𑊑ᰍㅤׄinfo :
+
+🐨 ! el koala perdido puede aparecer inesperadamente en el grupo.
+๑ tendrás que atraparlo antes que los demás.
+๑ solo la primera persona en atraparlo podrá ganar.
+๑ el premio será entregado en 𝗸𝗼𝗼𝗶𝗻𝘀.
+
+๑ el jackpot reúne un pozo de 𝗸𝗼𝗼𝗶𝗻𝘀 entre sus participantes.
+๑ cuando termina, se elige un participante al azar.
+๑ quien resulte elegido se lleva todo el pozo.
+
+¡buena suerte en todas las dinámicas! 𖹭
 ⠀⠀⠀"""
-    await update.message.reply_text(mensaje)
+    ]
+
+    teclado = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data="juegoinfo:0"
+            ),
+            InlineKeyboardButton(
+                "1 / 3",
+                callback_data="juegoinfo:pagina"
+            ),
+            InlineKeyboardButton(
+                "❀",
+                callback_data="juegoinfo:1"
+            )
+        ]
+    ])
+
+    await update.message.reply_text(
+        paginas[0],
+        reply_markup=teclado
+    )
+
+# --- CAMBIAR PAGINA DE JUEGOINFO ---
+async def cambiar_juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS and user_id not in ADMINS:
+        return
+
+    paginas = [
+
+        # PÁGINA 1
+        """⠀⠀⠀
+ ׄ𑊑ᰍㅤׄinfo :
+
+๑ con /abrir solo tienes un intento por día.
+๑ los valores se cambian diariamente.
+🐰 ! podrás encontrar cajitas con un conejo dorado (identificado con el emoji de conejo al recibir tus kooins); lo que significa más puntos.
+๑ si intentas jugar antes de que se actualicen las cajitas, el bot te avisará y no gastarás tu intento.
+๑ la fortuna acumulada se mide en 𝗸𝗼𝗼𝗶𝗻𝘀.
+
+¡diviértete y prueba tu suerte cada día! ⊹ ˖ Ი𐑼
+⠀⠀⠀""",
+
+        # PÁGINA 2
+        """⠀⠀⠀
+ ׄ𑊑ᰍㅤׄinfo :
+
+๑ con /arriesgar puedes apostar parte de tus 𝗸𝗼𝗼𝗶𝗻𝘀.
+๑ tienes 3 intentos diarios para probar tu suerte.
+๑ puedes conseguir intentos extra si un admin decide regalarte algunos.
+๑ dependiendo del resultado, puedes perder, recuperar, ganar más, duplicar o incluso triplicar tu apuesta.
+
+๑ en las rifas puedes conseguir un número a cambio de 𝗸𝗼𝗼𝗶𝗻𝘀.
+๑ solo puedes conseguir un número por rifa.
+๑ cuando la rifa termina, se elige un número ganador al azar y su dueño recibe el premio en robux.
+
+⠀⠀⠀""",
+
+        # PÁGINA 3
+        """⠀⠀⠀
+ ׄ𑊑ᰍㅤׄinfo :
+
+🐨 ! el koala perdido puede aparecer inesperadamente en el grupo.
+๑ tendrás que atraparlo antes que los demás.
+๑ solo la primera persona en atraparlo podrá ganar.
+๑ el premio será entregado en 𝗸𝗼𝗼𝗶𝗻𝘀.
+
+๑ el jackpot reúne un pozo de 𝗸𝗼𝗼𝗶𝗻𝘀 entre sus participantes.
+๑ cuando termina, se elige un participante al azar.
+๑ quien resulte elegido se lleva todo el pozo.
+
+¡buena suerte en todas las dinámicas! 𖹭
+⠀⠀⠀"""
+    ]
+
+    pagina = int(query.data.split(":")[1])
+
+    botones = []
+
+    # botón atrás
+    if pagina > 0:
+        botones.append(
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data=f"juegoinfo:{pagina - 1}"
+            )
+        )
+    else:
+        botones.append(
+            InlineKeyboardButton(
+                "𖹭",
+                callback_data="juegoinfo:0"
+            )
+        )
+
+    # número de página
+    botones.append(
+        InlineKeyboardButton(
+            f"{pagina + 1} / {len(paginas)}",
+            callback_data="juegoinfo:pagina"
+        )
+    )
+
+    # botón siguiente
+    if pagina < len(paginas) - 1:
+        botones.append(
+            InlineKeyboardButton(
+                "❀",
+                callback_data=f"juegoinfo:{pagina + 1}"
+            )
+        )
+    else:
+        botones.append(
+            InlineKeyboardButton(
+                "❀",
+                callback_data=f"juegoinfo:{len(paginas) - 1}"
+            )
+        )
+
+    await query.edit_message_text(
+        paginas[pagina],
+        reply_markup=InlineKeyboardMarkup([botones])
+    )
 
 # --- ABRIR ---
 async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3295,6 +3468,12 @@ app.add_handler(
     )
 )
 app.add_handler(CommandHandler("juegoinfo", juegoinfo))
+app.add_handler(
+    CallbackQueryHandler(
+        cambiar_juegoinfo,
+        pattern=r"^juegoinfo:"
+    )
+)
 app.add_handler(CommandHandler("abrir", abrir))
 app.add_handler(CommandHandler("total", total))
 app.add_handler(CommandHandler("ranking", ranking))
