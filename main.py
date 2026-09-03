@@ -587,19 +587,35 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         (user_id, hoy)
     )
 
-    conn.commit()
-
     username = (
         f"@{update.effective_user.username}"
         if update.effective_user.username
         else f"ID:{user_id}"
     )
 
+    # --- Registrar al jugador aunque tenga 0 kooins ---
+    cur.execute(
+        """
+        INSERT INTO puntos (user_id, username, score)
+        VALUES (%s, %s, 0)
+        ON CONFLICT (user_id)
+        DO UPDATE SET username = EXCLUDED.username
+        """,
+        (user_id, username)
+    )
+
+    conn.commit()
+
     valores = list(bolsas.values())
     random.shuffle(valores)
 
     keyboard = [
-        [InlineKeyboardButton("🐰", callback_data=str(valores[i]))]
+        [
+            InlineKeyboardButton(
+                "🐰",
+                callback_data=f"abrir:{user_id}:{valores[i]}"
+            )
+        ]
         for i in range(3)
     ]
 
@@ -617,9 +633,27 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- ELEGIR BOLSA ---
 async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+
+    # Separar los datos del botón
+    datos = query.data.split(":")
+
+    # datos[0] = abrir
+    # datos[1] = ID de quien hizo /abrir
+    # datos[2] = premio
+    jugador_id = datos[1]
+    premio = int(datos[2])
+
+    # --- Comprobar que sea la persona que hizo /abrir ---
+    if str(query.from_user.id) != jugador_id:
+        await query.answer(
+            "esta cajita no es tuya. ૮₍ ˃ ⤙ ˂ ₎ა",
+            show_alert=True
+        )
+        return
+
     await query.answer()
 
-    user_id = str(query.from_user.id)
+    user_id = jugador_id
 
     if user_id in BLOQUEADOS:
         await mensaje_bloqueo(update)
@@ -631,26 +665,31 @@ async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else f"ID:{user_id}"
     )
 
-    premio = int(query.data)
-
-    cur.execute("""
+    # --- Sumar kooins ---
+    cur.execute(
+        """
         INSERT INTO puntos (user_id, username, score)
         VALUES (%s, %s, %s)
         ON CONFLICT (user_id) DO UPDATE
         SET score = puntos.score + EXCLUDED.score,
             username = EXCLUDED.username
-    """, (user_id, username, premio))
+        """,
+        (user_id, username, premio)
+    )
 
-    # Registrar movimiento en bankooins
-    cur.execute("""
+    # --- Registrar movimiento ---
+    cur.execute(
+        """
         INSERT INTO movimientos_kooins
         (user_id, cantidad, tipo)
         VALUES (%s, %s, %s)
-    """, (
-        user_id,
-        premio,
-        "juego_diario"
-    ))
+        """,
+        (
+            user_id,
+            premio,
+            "juego_diario"
+        )
+    )
 
     conn.commit()
 
@@ -658,7 +697,10 @@ async def elegir_bolsa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     extra = " 🐰" if premio == max_valor else ""
 
     await query.edit_message_caption(
-        caption=f"{username}, elegiste y encontraste {premio} kooins{extra} ( ˶ •⩊• ˵ )"
+        caption=(
+            f"{username}, elegiste y encontraste "
+            f"{premio} kooins{extra} ( ˶ •⩊• ˵ )"
+        )
     )
 
 # --- TOTAL ---
@@ -3501,7 +3543,12 @@ app.add_handler(
         pattern=r"^participar_jackpot$"
     )
 )
-app.add_handler(CallbackQueryHandler(elegir_bolsa))
+app.add_handler(
+    CallbackQueryHandler(
+        elegir_bolsa,
+        pattern=r"^abrir:"
+    )
+)
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
 app.add_handler(CommandHandler("verobsequio", verobsequio))
