@@ -97,7 +97,6 @@ MAX_INTENTOS_RIESGO = 3
 BLOQUEADOS = [
     "5924728043", # gum
     "8504305248", # meli
-    "6911676625", # castillo
     "6813476131"  # cat
 ]
 
