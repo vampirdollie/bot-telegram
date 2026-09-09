@@ -951,6 +951,14 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "o: /kooins -20 @usuario"
         )
 
+    except psycopg2.Error as e:
+        await update.message.reply_text(
+            "hubo un problema con la consulta, revisa los parámetros.\n"
+            "asegúrate de usar un ID numérico o un @usuario válido."
+        )
+        # opcional: loguear el error para debug
+        print("Error en SQL:", e)
+
 # --- OBSEQUIO (solo admin) ---
 
 async def obsequio(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1871,34 +1879,6 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rifa_id = rifa_actual[0]
 
-    # Buscar participantes y lo que pagaron
-    cur.execute("""
-        SELECT user_id, kooins_pagados
-        FROM rifa_participantes
-        WHERE rifa_id = %s
-    """, (rifa_id,))
-
-    participantes = cur.fetchall()
-
-    # Devolver los kooins
-    for participante_id, kooins_pagados in participantes:
-        cur.execute("""
-            UPDATE puntos
-            SET score = score + %s
-            WHERE user_id = %s
-        """, (kooins_pagados, participante_id))
-
-        # Registrar devolución en bankooins
-        cur.execute("""
-            INSERT INTO movimientos_kooins
-            (user_id, cantidad, tipo)
-            VALUES (%s, %s, %s)
-        """, (
-            participante_id,
-            kooins_pagados,
-            "rifa"
-        ))
-
     # Eliminar participantes
     cur.execute("""
         DELETE FROM rifa_participantes
@@ -1919,11 +1899,9 @@ async def limpiarrifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        "🧹 ⋮ rifas limpiada correctamente.\n\n"
-        f"✿ participantes reembolsados: {len(participantes)}\n"
-        "✿ sus kooins fueron devueltos.\n"
+        "🧹 ⋮ rifas limpiadas correctamente.\n\n"
         "✿ los datos de la rifa fueron eliminados.\n"
-        "✿ el historial de ganadores de Robux fue limpiado.\n\n"
+        "✿ el historial de ganadores de robux fue limpiado.\n\n"
         "ya puedes iniciar una nueva rifa cuando quieras. 𖹭"
     )
 
