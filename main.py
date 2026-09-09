@@ -2012,7 +2012,7 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 "৻(  •̀ ᗜ •́  ৻) arriesgar . .",
-                callback_data=f"riesgo:{cantidad}"
+                callback_data=f"riesgo:{user_id}:{cantidad}"
             )
         ]
     ]
@@ -2045,7 +2045,20 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    cantidad = int(query.data.split(":")[1])
+    # -----------------------------------------
+    # COMPROBAR QUE EL ARRIESGAR LE PERTENEZCA
+    # -----------------------------------------
+
+    datos = query.data.split(":")
+    dueño_id = datos[1]
+    cantidad = int(datos[2])
+
+    if user_id != dueño_id:
+        await query.answer(
+            "ese arriesgar no te pertenece. (¬_¬)",
+            show_alert=True
+        )
+        return
 
     hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
 
@@ -2218,6 +2231,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         SET score = %s
         WHERE user_id = %s
     """, (
+        
         saldo_despues,
         user_id
     ))
