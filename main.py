@@ -841,7 +841,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         cantidad = int(context.args[0])
-        objetivo = context.args[1]
+        objetivo = context.args[1].strip()  # quita espacios invisibles
 
         if cantidad == 0:
             await update.message.reply_text(
@@ -852,7 +852,7 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if objetivo.startswith("@"):
             # Buscar el user_id real usando el username
             cur.execute(
-                "SELECT user_id, score FROM puntos WHERE username=%s",
+                "SELECT user_id, score FROM puntos WHERE username ILIKE %s",
                 (objetivo,)
             )
 
@@ -957,7 +957,6 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "hubo un problema con la consulta, "
             "asegúrate de usar un ID numérico o un @usuario válido."
         )
-        # opcional: loguear el error para debug
         print("Error en SQL:", e)
 
 # --- OBSEQUIO (solo admin) ---
