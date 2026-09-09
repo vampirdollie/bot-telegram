@@ -953,7 +953,8 @@ async def kooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except psycopg2.Error as e:
         await update.message.reply_text(
-            "hubo un problema con la consulta, revisa los parámetros.\n"
+            "(｡ᵕ ◞ _◟) ups.\n"
+            "hubo un problema con la consulta, "
             "asegúrate de usar un ID numérico o un @usuario válido."
         )
         # opcional: loguear el error para debug
