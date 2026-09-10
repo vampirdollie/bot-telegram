@@ -1421,9 +1421,10 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if puesto is None:
         await update.message.reply_text(
             "⠀⠀⠀🐨 ᛝ 𝗠𝗜𝗦 𝗞𝗢𝗔𝗟𝗔𝗦  𖹭\n\n"
-            "puesto: —\n"
-            "koalas atrapados: 0\n"
-            "cantidad sumada: 0 kooins"
+            "⠀⠀⠀✿ puesto: —\n"
+            "⠀⠀⠀✿ koalas atrapados: 0\n"
+            "⠀⠀⠀✿ total: 0 kooins\n\n"
+            "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
         )
         return
 
@@ -1431,7 +1432,7 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀⠀🐨 ᛝ 𝗠𝗜𝗦 𝗞𝗢𝗔𝗟𝗔𝗦  𖹭\n\n"
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
-        f"⠀⠀⠀✿ total: {total_usuario} kooins\n"
+        f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
         F"⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
 
