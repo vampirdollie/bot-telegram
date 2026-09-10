@@ -199,6 +199,8 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /arriesgar → apostar kooins
 /total → ver tu acumulado
 /movbankooins → pdf de tus movimientos
+/koyatop → quién ha atrapado más koalas
+/koyas → koalas atrapados, puesto, total
 /start → bienvenida
 /cmds → lista de comandos
 ⠀""",
@@ -1359,12 +1361,12 @@ async def koyatop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not resultados:
         await update.message.reply_text(
-            "🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
+            "⠀⠀⠀🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
             "todavía no hay koalas atrapados. 🐨"
         )
         return
 
-    texto = "🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
+    texto = "⠀⠀⠀🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
 
     for puesto, (user_id, koalas, total) in enumerate(resultados, start=1):
         cur.execute(
@@ -1418,7 +1420,7 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if puesto is None:
         await update.message.reply_text(
-            "🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
+            "⠀⠀⠀🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
             "puesto: —\n"
             "koalas atrapados: 0\n"
             "cantidad sumada: 0 kooins"
@@ -1426,10 +1428,10 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await update.message.reply_text(
-        "🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
-        f"puesto: #{puesto}\n"
-        f"koalas atrapados: {koalas_usuario}\n"
-        f"cantidad sumada: {total_usuario} kooins"
+        "⠀⠀⠀🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
+        f"⠀⠀⠀✿ puesto: #{puesto}\n"
+        f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
+        f"⠀⠀⠀✿ cantidad sumada: {total_usuario} kooins"
     )
 
 # --- HANDLER PARA "." ---
