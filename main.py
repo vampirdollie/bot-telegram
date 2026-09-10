@@ -268,6 +268,8 @@ async def cambiar_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /arriesgar → apostar kooins
 /total → ver tu acumulado
 /movbankooins → pdf de tus movimientos
+/koyatop → quién ha atrapado más koalas
+/koyas → koalas atrapados, puesto, total
 /start → bienvenida
 /cmds → lista de comandos
 ⠀""",
@@ -403,6 +405,7 @@ async def juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ๑ tendrás que atraparlo antes que los demás.
 ๑ solo la primera persona en atraparlo podrá ganar.
 ๑ el premio será entregado en 𝗸𝗼𝗼𝗶𝗻𝘀.
+𖹭 con /koyas ves tus koalas atrapados.
 
 ๑ el jackpot reúne un pozo de 𝗸𝗼𝗼𝗶𝗻𝘀 entre sus participantes.
 ๑ cuando termina, se elige un participante al azar.
@@ -482,6 +485,7 @@ async def cambiar_juegoinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ๑ tendrás que atraparlo antes que los demás.
 ๑ solo la primera persona en atraparlo podrá ganar.
 ๑ el premio será entregado en 𝗸𝗼𝗼𝗶𝗻𝘀.
+𖹭 con /koyas ves tus koalas atrapados.
 
 ๑ el jackpot reúne un pozo de 𝗸𝗼𝗼𝗶𝗻𝘀 entre sus participantes.
 ๑ cuando termina, se elige un participante al azar.
@@ -1334,6 +1338,98 @@ async def cancelarkoala(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "୨ৎ koala cancelado.\n"
         "ya puedes iniciar otro cuando quieras. ✿"
+    )
+
+# --- KOYA TOP ---
+
+async def koyatop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    cur.execute("""
+        SELECT
+            ganador_id,
+            COUNT(*) AS koalas,
+            SUM(premio) AS total
+        FROM koala_evento
+        WHERE ganador_id IS NOT NULL
+        GROUP BY ganador_id
+        ORDER BY koalas DESC, total DESC, ganador_id ASC
+        LIMIT 10
+    """)
+
+    resultados = cur.fetchall()
+
+    if not resultados:
+        await update.message.reply_text(
+            "🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
+            "todavía no hay koalas atrapados. 🐨"
+        )
+        return
+
+    texto = "🐨 ᛝ 𝗞𝗢𝗬𝗔 𝗧𝗢𝗣\n\n"
+
+    for puesto, (user_id, koalas, total) in enumerate(resultados, start=1):
+        cur.execute(
+            "SELECT username FROM puntos WHERE user_id = %s",
+            (user_id,)
+        )
+        row = cur.fetchone()
+
+        if row and row[0]:
+            nombre = row[0]
+        else:
+            nombre = f"ID: {user_id}"
+
+        texto += f"{puesto}. {nombre} — {koalas} koala"
+        if koalas != 1:
+            texto += "s"
+        texto += "\n"
+
+    await update.message.reply_text(texto)
+
+
+# --- MIS KOALAS ---
+
+async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    # Obtener todos los participantes ordenados igual que /koyatop
+    cur.execute("""
+        SELECT
+            ganador_id,
+            COUNT(*) AS koalas,
+            SUM(premio) AS total
+        FROM koala_evento
+        WHERE ganador_id IS NOT NULL
+        GROUP BY ganador_id
+        ORDER BY koalas DESC, total DESC, ganador_id ASC
+    """)
+
+    resultados = cur.fetchall()
+
+    puesto = None
+    koalas_usuario = 0
+    total_usuario = 0
+
+    for numero, (ganador_id, koalas, total) in enumerate(resultados, start=1):
+        if str(ganador_id) == user_id:
+            puesto = numero
+            koalas_usuario = koalas
+            total_usuario = total
+            break
+
+    if puesto is None:
+        await update.message.reply_text(
+            "🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
+            "puesto: —\n"
+            "koalas atrapados: 0\n"
+            "cantidad sumada: 0 kooins"
+        )
+        return
+
+    await update.message.reply_text(
+        "🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
+        f"puesto: #{puesto}\n"
+        f"koalas atrapados: {koalas_usuario}\n"
+        f"cantidad sumada: {total_usuario} kooins"
     )
 
 # --- HANDLER PARA "." ---
@@ -3546,6 +3642,8 @@ app.add_handler(CommandHandler("limpiarrifa", limpiarrifa))
 app.add_handler(CommandHandler("ganadoresrobux", ganadoresrobux))
 app.add_handler(CommandHandler("koala", koala))
 app.add_handler(CommandHandler("cancelarkoala", cancelarkoala))
+app.add_handler(CommandHandler("koyatop", koyatop))
+app.add_handler(CommandHandler("koyas", koyas))
 app.add_handler(CommandHandler("arriesgar", arriesgar))
 app.add_handler(CommandHandler("darintento", darintento))
 app.add_handler(CommandHandler("verintentos", verintentos))
