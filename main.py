@@ -1428,10 +1428,10 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await update.message.reply_text(
-        "⠀⠀⠀🐨 ᛝ 𝗧𝗨𝗦 𝗞𝗢𝗔𝗟𝗔𝗦\n\n"
+        "⠀⠀⠀🐨 ᛝ 𝗠𝗜𝗦 𝗞𝗢𝗔𝗟𝗔𝗦  𖹭\n\n"
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
-        f"⠀⠀⠀✿ cantidad sumada: {total_usuario} kooins"
+        f"⠀⠀⠀✿ total: {total_usuario} kooins"
     )
 
 # --- HANDLER PARA "." ---
