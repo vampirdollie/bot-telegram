@@ -745,7 +745,8 @@ async def tienda_inicio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
         "gasta tus kooins en cositas para\n"
         "personalizar tu cuenta. 𖹭\n\n"
-        "elige una categoría:",
+        "elige una categoría:\n"
+        "⠀",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
