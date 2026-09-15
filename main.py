@@ -628,7 +628,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if cur.fetchone():
             await query.answer(
-                "ya tienes este lema. 🎐",
+                "ya tienes este lema.",
                 show_alert=True
             )
             return
@@ -709,9 +709,9 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "⠀⠀⠀\n"
         "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
-        f"{nombre}\n\n"
-        f"gastaste: {precio} kooins\n"
-        f"saldo restante: {nuevo_saldo} kooins\n\n"
+        f"๑ {nombre}\n\n"
+        f"๑ gastaste: {precio} kooins\n"
+        f"๑ saldo restante: {nuevo_saldo} kooins\n\n"
         "gracias por gastar, jeje. 𖹭"
     )
 
@@ -849,7 +849,7 @@ async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if cur.fetchone():
             await update.message.reply_text(
-                "ya tienes este lema. 🎐"
+                "ya tienes este lema."
             )
             return
 
@@ -916,10 +916,11 @@ async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nuevo_saldo = saldo - precio
 
     await update.message.reply_text(
-        f"✦ compra realizada.\n\n"
-        f"{nombre}\n"
-        f"gastaste: {precio} kooins\n"
-        f"saldo restante: {nuevo_saldo} kooins\n\n"
+        "⠀⠀⠀\n"
+        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        f"๑ {nombre}\n"
+        f"๑ gastaste: {precio} kooins\n"
+        f"๑ saldo restante: {nuevo_saldo} kooins\n\n"
         f"gracias por gastar, jeje. 𖹭"
     )
 
@@ -988,18 +989,19 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lema_koala = obtener_lema_koala(koalas)
 
     texto = (
-        "⠀⠀⠀🎐 ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
+        "⠀\n"
+        "⠀⠀⠀(˶˃ ᵕ ˂˶) .ᐟ.ᐟ ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
     )
 
     # --- LEMA AUTOMÁTICO DE KOALAS ---
 
     if lema_koala:
         texto += (
-            "🐨 𝗟𝗘𝗠𝗔 𝗗𝗘 𝗞𝗢𝗬𝗔𝗦\n"
+            "🐨 𝗟𝗘𝗠𝗔 𝗗𝗘 𝗞𝗢𝗬𝗔𝗦\n\n""
             f"  {lema_koala}\n"
-            f"  tienes {koalas} Koyas atrapados.\n\n"
+            f"  tienes {koalas} koyas atrapados.\n\n"
             "este lema se obtiene automáticamente\n"
-            "por tus Koyas y no necesita equiparse. 𖹭\n\n"
+            "por tus koyas y no necesita equiparse. 𖹭\n\n"
         )
 
     # --- LEMAS COMPRADOS ---
@@ -1083,7 +1085,7 @@ async def equiparlema(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
 
     await update.message.reply_text(
-        f"🎐 lema equipado:\n\n"
+        f"⠀⠀⠀🎐 ᛝ Lema equipado:\n\n"
         f"{lema[0]}\n\n"
         "ahora aparecerá en tu perfil de Koya. 𖹭"
     )
@@ -2376,7 +2378,8 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
-        f"⠀⠀⠀🎐 lema: {lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
+        f"⠀⠀⠀✿ lema: ──────\n"
+        f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
         "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
 
