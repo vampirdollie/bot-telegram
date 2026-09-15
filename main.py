@@ -357,7 +357,7 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
+        "⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
         "gasta tus kooins en cositas para\n"
         "personalizar tu cuenta. 𖹭\n\n"
         "elige una categoría:",
@@ -406,22 +406,50 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
         titulo = "🎐 𝗟𝗘𝗠𝗔𝗦"
         descripcion = "colecciona lemas para personalizar tu cuenta. 𖹭"
 
-    texto = (
-        "⠀⠀⠀\n"
-        f"⠀⠀⠀⠀⠀⠀{titulo}\n\n"
-        f"{descripcion}\n\n"
-        "elige un artículo:"
-    )
+    if tipo == "lema":
 
-    keyboard = []
+        texto = (
+            "⠀⠀⠀\n"
+            "⠀⠀⠀⠀⠀⠀🎐 𝗟𝗘𝗠𝗔𝗦\n\n"
+            "colecciona lemas para personalizar\n"
+            "tu cuenta. 𖹭\n\n"
+        )
 
-    for item_id, nombre, item_descripcion, precio in items:
-        keyboard.append([
-            InlineKeyboardButton(
-                f"{nombre} · {precio} 🪙",
-                callback_data=f"tienda_item:{item_id}"
+        keyboard = []
+
+        for item_id, nombre, item_descripcion, precio in items:
+
+            texto += (
+                f"✦ {nombre}\n"
+                f"  {item_descripcion}\n"
+                f"  ๑ {precio} kooins\n\n"
             )
-        ])
+
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"🛒 comprar · {precio} kooins",
+                    callback_data=f"tienda_item:{item_id}"
+                )
+            ])
+
+    else:
+
+        texto = (
+            "⠀⠀⠀\n"
+            f"⠀⠀⠀⠀⠀⠀{titulo}\n\n"
+            f"{descripcion}\n\n"
+            "elige un artículo:"
+        )
+
+        keyboard = []
+
+        for item_id, nombre, item_descripcion, precio in items:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{nombre} · {precio} 🪙",
+                    callback_data=f"tienda_item:{item_id}"
+                )
+            ])
 
     keyboard.append([
         InlineKeyboardButton(
@@ -709,7 +737,7 @@ async def tienda_inicio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
+        "⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
         "gasta tus kooins en cositas para\n"
         "personalizar tu cuenta. 𖹭\n\n"
         "elige una categoría:",
@@ -888,6 +916,26 @@ async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"saldo restante: {nuevo_saldo} kooins\n\n"
         f"gracias por gastar, jeje. 𖹭"
     )
+
+# --- LEMAS AUTOMÁTICOS DE KOALAS ---
+
+def obtener_lema_koala(koalas):
+    if koalas >= 200:
+        return "🏆 Koya Supremo ๋࣭ ⭑"
+    elif koalas >= 150:
+        return "✦ Maestro de Koyas ๋࣭ ⭑"
+    elif koalas >= 100:
+        return "🐨 Leyenda Koya ๋࣭ ⭑"
+    elif koalas >= 75:
+        return "👑 Depredador de Koyas ๋࣭ ⭑"
+    elif koalas >= 50:
+        return "🎊 Cazador profesional de Koyas ๋࣭ ⭑"
+    elif koalas >= 25:
+        return "🐾 Rastreador de Koyas ๋࣭ ⭑"
+    elif koalas >= 10:
+        return "🎐 Cazador de Koyas ๋࣭ ⭑"
+
+    return None
 
 # --- MIS LEMAS ---
 
@@ -2291,24 +2339,6 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
         F"⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
-
-def obtener_lema_koala(koalas):
-    if koalas >= 200:
-        return "🏆 Koya Supremo ๋࣭ ⭑"
-    elif koalas >= 150:
-        return "✦ Maestro de Koyas ๋࣭ ⭑"
-    elif koalas >= 100:
-        return "🐨 Leyenda Koya ๋࣭ ⭑"
-    elif koalas >= 75:
-        return "👑 Depredador de Koyas ๋࣭ ⭑"
-    elif koalas >= 50:
-        return "🎊 Cazador profesional de Koyas ๋࣭ ⭑"
-    elif koalas >= 25:
-        return "🐾 Rastreador de Koyas ๋࣭ ⭑"
-    elif koalas >= 10:
-        return "🎐 Cazador de Koyas ๋࣭ ⭑"
-
-    return None
 
 # --- HANDLER PARA "." ---
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
