@@ -2612,16 +2612,30 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             conn.commit()
 
+    # --- Comprobar intentos comprados en tienda ---
+    _, intentos_riesgo_tienda = preparar_uso_tienda(user_id, hoy)
+
     limite = MAX_INTENTOS_RIESGO + intentos_extra
 
-    if intentos >= limite:
+    if intentos >= limite and intentos_riesgo_tienda <= 0:
         await update.message.reply_text(
             "ya utilizaste todos tus intentos de hoy.\n"
-            f"puedes intentar que un admin te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
+            f"puedes comprar más intentos en /tienda o pedirle a un admin que te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
             f"límite actual: {limite} intentos.\n\n"
             "vuelve mañana para tentar tu suerte otra vez. 𖹭"
         )
         return
+
+    # Si ya no quedan intentos normales/regalados,
+    # este arriesgar utilizará uno comprado.
+    usar_intento_tienda = intentos >= limite
+
+    if usar_intento_tienda:
+        restantes_mostrar = intentos_riesgo_tienda
+        limite_mostrar = intentos_riesgo_tienda
+    else:
+        restantes_mostrar = (limite - intentos) + intentos_riesgo_tienda
+        limite_mostrar = limite + intentos_riesgo_tienda
 
     username = (
         f"@{update.effective_user.username}"
@@ -2648,7 +2662,7 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀puedes ganar, perder o\n"
         f"⠀⠀⠀tener suerte... ¿te atreves? 𖹭\n\n"
         f"⠀⠀⠀intentos restantes: "
-        f"{limite - intentos}/{limite}",
+        f"{restantes_mostrar}/{limite_mostrar}",
         reply_markup=reply_markup,
     )
 
@@ -2719,14 +2733,21 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         conn.commit()
 
+    # --- Comprobar intentos comprados en tienda ---
+    _, intentos_riesgo_tienda = preparar_uso_tienda(user_id, hoy)
+
     limite = MAX_INTENTOS_RIESGO + intentos_extra
 
-    if intentos >= limite:
+    if intentos >= limite and intentos_riesgo_tienda <= 0:
         await query.answer(
             "ya no tienes intentos disponibles hoy.",
             show_alert=True
         )
         return
+
+    # Si ya no quedan intentos normales/regalados,
+    # este intento consume uno comprado en tienda.
+    usar_intento_tienda = intentos >= limite
 
     # -----------------------------------------
     # COMPROBAR SALDO ACTUAL
@@ -2872,12 +2893,22 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # -----------------------------------------
     # REGISTRAR INTENTO
     # -----------------------------------------
+    if usar_intento_tienda:
 
-    cur.execute("""
-        UPDATE riesgos
-        SET intentos = intentos + 1
-        WHERE user_id = %s
-    """, (user_id,))
+        cur.execute("""
+            UPDATE tienda_usos
+            SET intentos_riesgo = intentos_riesgo - 1
+            WHERE user_id = %s
+              AND intentos_riesgo > 0
+        """, (user_id,))
+
+    else:
+
+        cur.execute("""
+            UPDATE riesgos
+            SET intentos = intentos + 1
+            WHERE user_id = %s
+        """, (user_id,))
 
     conn.commit()
 
@@ -2885,8 +2916,13 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # INTENTOS RESTANTES
     # -----------------------------------------
 
-    intentos_usados = intentos + 1
-    restantes = limite - intentos_usados
+    if usar_intento_tienda:
+        restantes = intentos_riesgo_tienda - 1
+        limite_resultado = intentos_riesgo_tienda
+    else:
+        intentos_usados = intentos + 1
+        restantes = (limite - intentos_usados) + intentos_riesgo_tienda
+        limite_resultado = limite + intentos_riesgo_tienda
 
     # -----------------------------------------
     # MOSTRAR RESULTADO
@@ -2904,7 +2940,7 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀𖹭 saldo después: {saldo_despues} kooins\n\n"
 
         f"⠀⠀⠀intentos restantes: "
-        f"{restantes}/{limite}",
+        f"{restantes}/{limite_resultado}",
     )
 
 # --- DAR INTENTOS DE RIESGO (solo admin) ---
