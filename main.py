@@ -216,7 +216,7 @@ def preparar_tienda():
         (
             "݁ ˖Ი𐑼⋆ KOOINS primero",
             "las prioridades están claras.",
-            250,
+            200,
             "lema",
             None
         ),
@@ -224,14 +224,14 @@ def preparar_tienda():
             "⤷ ゛⛀⛁ ˎˊ˗ Billetera de Koya",
             "una billetera que nunca debería\n"
             " estar vacía.",
-            300,
+            250,
             "lema",
             None
         ),
         (
             "ִֶָ𓂃 ࣪˖ ִֶָ🐇་༘ Acumulador profesional",
             "guardar kooins hasta que ya no quepan.",
-            350,
+            250,
             "lema",
             None
         ),
@@ -239,21 +239,21 @@ def preparar_tienda():
             "（˶•̀ ᎑-˶）Sin miedo al riesgo. . 🎱",
             "para quienes miran el botón de arriesgar\n"
             " y dicen sí.",
-            400,
+            300,
             "lema",
             None
         ),
         (
             "⚡ ᕙ(  •̀ ᗜ •́  )ᕗ Todo o nada",
             "no hay punto medio.",
-            450,
+            350,
             "lema",
             None
         ),
         (
             "𖦹 Apostador de Koya",
             "la suerte siempre puede cambiar.",
-            500,
+            350,
             "lema",
             None
         )
@@ -2405,9 +2405,9 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⠀⠀⠀✿ puesto: —\n"
             "⠀⠀⠀✿ koalas atrapados: 0\n"
             "⠀⠀⠀✿ total: 0 kooins\n\n"
-            f"⠀⠀⠀✿ lema otorgado: ──────\n"
+            f"⠀⠀⠀✿ lema otorgado:\n"
             f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
-            f"⠀⠀⠀✿ lema equipado: ──────\n"
+            f"⠀⠀⠀✿ lema equipado:\n"
             f"⠀⠀⠀{lema_equipado or 'aún no tienes un lema equipado'}\n\n"
             "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
         )
@@ -2418,9 +2418,9 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
-        f"⠀⠀⠀✿ lema de otorgado: ──────\n"
+        f"⠀⠀⠀✿ lema de otorgado:\n"
         f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
-        f"⠀⠀⠀✿ lema equipado: ──────\n"
+        f"⠀⠀⠀✿ lema equipado:\n"
         f"⠀⠀⠀{lema_equipado or 'aún no tienes un lema equipado'}\n\n"
         "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
