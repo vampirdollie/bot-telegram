@@ -2387,12 +2387,28 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lema_koala = obtener_lema_koala(koalas_usuario)
 
+    # Obtener lema comprado/equipado
+    cur.execute("""
+        SELECT tienda_items.nombre
+        FROM puntos
+        LEFT JOIN tienda_items
+            ON puntos.lema_id = tienda_items.id
+        WHERE puntos.user_id = %s
+    """, (user_id,))
+
+    fila_lema = cur.fetchone()
+    lema_equipado = fila_lema[0] if fila_lema else None
+
     if puesto is None:
         await update.message.reply_text(
             "⠀⠀⠀🐨 ᛝ 𝗠𝗜𝗦 𝗞𝗢𝗔𝗟𝗔𝗦  𖹭\n\n"
             "⠀⠀⠀✿ puesto: —\n"
             "⠀⠀⠀✿ koalas atrapados: 0\n"
             "⠀⠀⠀✿ total: 0 kooins\n\n"
+            f"⠀⠀⠀✿ lema otorgado: ──────\n"
+            f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
+            f"⠀⠀⠀✿ lema equipado: ──────\n"
+            f"⠀⠀⠀{lema_equipado or 'aún no tienes un lema equipado'}\n\n"
             "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
         )
         return
@@ -2402,8 +2418,10 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
-        f"⠀⠀⠀✿ lema: ──────\n"
+        f"⠀⠀⠀✿ lema de otorgado: ──────\n"
         f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
+        f"⠀⠀⠀✿ lema equipado: ──────\n"
+        f"⠀⠀⠀{lema_equipado or 'aún no tienes un lema equipado'}\n\n"
         "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
 
