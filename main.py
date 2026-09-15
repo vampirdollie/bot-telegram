@@ -206,7 +206,7 @@ def preparar_tienda():
             None
         ),
         (
-            "💸 ಄ No sé ahorrar",
+            "💸 ๑ No sé ahorrar",
             "gastar kooins es parte del proceso.",
             200,
             "lema",
@@ -336,50 +336,385 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mensaje_bloqueo(update)
         return
 
-    cur.execute("""
-        SELECT id, nombre, descripcion, precio, tipo
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🐰 Intentos",
+                callback_data="tienda_categoria:intento_abrir"
+            ),
+            InlineKeyboardButton(
+                "🎱 Riesgo",
+                callback_data="tienda_categoria:intento_riesgo"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🎐 Lemas",
+                callback_data="tienda_categoria:lema"
+            )
+        ]
+    ]
+
+    await update.message.reply_text(
+        "⠀⠀⠀\n"
+        "⠀⠀⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
+        "gasta tus kooins en cositas para\n"
+        "personalizar tu cuenta. 𖹭\n\n"
+        "elige una categoría:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+# --- CATEGORÍAS DE LA TIENDA ---
+
+async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    tipo = query.data.split(":")[1]
+
+    cur.execute(
+        """
+        SELECT id, nombre, descripcion, precio
         FROM tienda_items
         WHERE activo = TRUE
-        ORDER BY tipo, precio, id
-    """)
+          AND tipo = %s
+        ORDER BY precio, id
+        """,
+        (tipo,)
+    )
 
     items = cur.fetchall()
 
+    if tipo == "intento_abrir":
+        titulo = "🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦"
+        descripcion = "consigue intentos extra para /abrir. 𖹭"
+
+    elif tipo == "intento_riesgo":
+        titulo = "🎱 𝗥𝗜𝗘𝗦𝗚𝗢"
+        descripcion = "consigue intentos extra para /arriesgar. 𖹭"
+
+    else:
+        titulo = "🎐 𝗟𝗘𝗠𝗔𝗦"
+        descripcion = "colecciona lemas para personalizar tu cuenta. 𖹭"
+
     texto = (
-        "⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
-        "gasta tus kooins en cositas para tu cuenta. 𖹭\n\n"
+        "⠀⠀⠀\n"
+        f"⠀⠀⠀⠀⠀⠀{titulo}\n\n"
+        f"{descripcion}\n\n"
+        "elige un artículo:"
     )
 
-    categoria_actual = None
+    keyboard = []
 
-    for item_id, nombre, descripcion, precio, tipo in items:
+    for item_id, nombre, item_descripcion, precio in items:
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{nombre} · {precio} 🪙",
+                callback_data=f"tienda_item:{item_id}"
+            )
+        ])
 
-        if tipo != categoria_actual:
+    keyboard.append([
+        InlineKeyboardButton(
+            "↩ volver",
+            callback_data="tienda_inicio"
+        )
+    ])
 
-            categoria_actual = tipo
+    await query.edit_message_text(
+        texto,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-            if tipo == "intento_abrir":
-                texto += "🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦\n"
-            elif tipo == "intento_riesgo":
-                texto += "🎱 𝗥𝗜𝗘𝗦𝗚𝗢\n"
-            elif tipo == "lema":
-                texto += "🎐 𝗟𝗘𝗠𝗔𝗦\n"
+# --- MOSTRAR ARTÍCULO DE LA TIENDA ---
 
-            texto += "\n"
+async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-        texto += (
-            f"#{item_id} • {nombre}\n"
-            f"  {descripcion}\n"
-            f"  ✦ {precio} kooins\n\n"
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    item_id = int(query.data.split(":")[1])
+
+    cur.execute(
+        """
+        SELECT nombre, descripcion, precio, tipo
+        FROM tienda_items
+        WHERE id = %s
+          AND activo = TRUE
+        """,
+        (item_id,)
+    )
+
+    item = cur.fetchone()
+
+    if not item:
+        await query.answer(
+            "este artículo ya no está disponible.",
+            show_alert=True
+        )
+        return
+
+    nombre, descripcion, precio, tipo = item
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"🛒 comprar · {precio} kooins",
+                callback_data=f"tienda_comprar:{item_id}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "↩ volver",
+                callback_data=f"tienda_categoria:{tipo}"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        "⠀⠀⠀\n"
+        f"⠀⠀⠀⠀⠀⠀{nombre}\n\n"
+        f"{descripcion}\n\n"
+        f"๑ precio: {precio} kooins\n\n"
+        "¿quieres comprarlo?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+# --- COMPRAR DESDE LA TIENDA ---
+
+async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    item_id = int(query.data.split(":")[1])
+
+    cur.execute(
+        """
+        SELECT nombre, descripcion, precio, tipo, limite_diario
+        FROM tienda_items
+        WHERE id = %s
+          AND activo = TRUE
+        """,
+        (item_id,)
+    )
+
+    item = cur.fetchone()
+
+    if not item:
+        await query.answer(
+            "ese artículo ya no está disponible.",
+            show_alert=True
+        )
+        return
+
+    nombre, descripcion, precio, tipo, limite_diario = item
+
+    # --- Comprobar saldo ---
+
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila = cur.fetchone()
+    saldo = fila[0] if fila else 0
+
+    if saldo < precio:
+        await query.answer(
+            f"no tienes suficientes kooins. tienes {saldo}.",
+            show_alert=True
+        )
+        return
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # --- Preparar usos diarios ---
+
+    intentos_abrir, intentos_riesgo = preparar_uso_tienda(
+        user_id,
+        hoy
+    )
+
+    # --- Comprobar límite diario ---
+
+    if tipo == "intento_abrir":
+        usados = intentos_abrir
+
+    elif tipo == "intento_riesgo":
+        usados = intentos_riesgo
+
+    else:
+        usados = 0
+
+    if limite_diario is not None and usados >= limite_diario:
+        await query.answer(
+            f"ya compraste el máximo de este artículo hoy.\n"
+            f"límite: {limite_diario}.",
+            show_alert=True
+        )
+        return
+
+    # --- Lemas: comprobar si ya lo tiene ---
+
+    if tipo == "lema":
+
+        cur.execute(
+            """
+            SELECT id
+            FROM inventario
+            WHERE user_id = %s
+              AND item_id = %s
+            """,
+            (user_id, item_id)
         )
 
-    texto += (
-        "para comprar usa:\n"
-        "/comprar <id>\n\n"
-        "ejemplo: /comprar 3"
+        if cur.fetchone():
+            await query.answer(
+                "ya tienes este lema. 🎐",
+                show_alert=True
+            )
+            return
+
+    # --- Restar KOOINS ---
+
+    cur.execute(
+        """
+        UPDATE puntos
+        SET score = score - %s
+        WHERE user_id = %s
+        """,
+        (precio, user_id)
     )
 
-    await update.message.reply_text(texto)
+    # --- Registrar movimiento ---
+
+    cur.execute(
+        """
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+        """,
+        (
+            user_id,
+            -precio,
+            "tienda"
+        )
+    )
+
+    # --- Guardar artículo en inventario ---
+
+    if tipo == "lema":
+
+        cur.execute(
+            """
+            INSERT INTO inventario
+            (user_id, item_id, cantidad)
+            VALUES (%s, %s, 1)
+            ON CONFLICT (user_id, item_id)
+            DO UPDATE SET cantidad = inventario.cantidad + 1
+            """,
+            (user_id, item_id)
+        )
+
+    # --- Registrar intento extra de abrir ---
+
+    elif tipo == "intento_abrir":
+
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET intentos_abrir = intentos_abrir + 1
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+    # --- Registrar intento extra de riesgo ---
+
+    elif tipo == "intento_riesgo":
+
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET intentos_riesgo = intentos_riesgo + 1
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+    conn.commit()
+
+    nuevo_saldo = saldo - precio
+
+    await query.answer("compra realizada. 🛍️")
+
+    await query.edit_message_text(
+        "⠀⠀⠀\n"
+        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        f"{nombre}\n\n"
+        f"gastaste: {precio} kooins\n"
+        f"saldo restante: {nuevo_saldo} kooins\n\n"
+        "gracias por gastar, jeje. 𖹭"
+    )
+
+# --- VOLVER AL INICIO DE LA TIENDA ---
+
+async def tienda_inicio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🐰 Intentos",
+                callback_data="tienda_categoria:intento_abrir"
+            ),
+            InlineKeyboardButton(
+                "🎱 Riesgo",
+                callback_data="tienda_categoria:intento_riesgo"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🎐 Lemas",
+                callback_data="tienda_categoria:lema"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        "⠀⠀⠀\n"
+        "⠀⠀⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
+        "gasta tus kooins en cositas para\n"
+        "personalizar tu cuenta. 𖹭\n\n"
+        "elige una categoría:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 # --- COMPRAR EN TIENDA ---
 
@@ -1956,6 +2291,24 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
         F"⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
+
+def obtener_lema_koala(koalas):
+    if koalas >= 200:
+        return "🏆 Koya Supremo ๋࣭ ⭑"
+    elif koalas >= 150:
+        return "✦ Maestro de Koyas ๋࣭ ⭑"
+    elif koalas >= 100:
+        return "🐨 Leyenda Koya ๋࣭ ⭑"
+    elif koalas >= 75:
+        return "👑 Depredador de Koyas ๋࣭ ⭑"
+    elif koalas >= 50:
+        return "🎊 Cazador profesional de Koyas ๋࣭ ⭑"
+    elif koalas >= 25:
+        return "🐾 Rastreador de Koyas ๋࣭ ⭑"
+    elif koalas >= 10:
+        return "🎐 Cazador de Koyas ๋࣭ ⭑"
+
+    return None
 
 # --- HANDLER PARA "." ---
 async def texto_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -4191,6 +4544,18 @@ app.add_handler(
         elegir_bolsa,
         pattern=r"^abrir:"
     )
+)
+app.add_handler(
+    CallbackQueryHandler(tienda_categoria, pattern=r"^tienda_categoria:")
+)
+app.add_handler(
+    CallbackQueryHandler(tienda_item, pattern=r"^tienda_item:")
+)
+app.add_handler(
+    CallbackQueryHandler(tienda_comprar, pattern=r"^tienda_comprar:")
+)
+app.add_handler(
+    CallbackQueryHandler(tienda_inicio, pattern=r"^tienda_inicio$")
 )
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
