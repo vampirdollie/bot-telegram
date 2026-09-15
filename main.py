@@ -343,17 +343,17 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 "🐰 Intentos",
-                callback_data="tienda_categoria:intento_abrir"
+                callback_data=f"tienda_categoria:{user_id}:intento_abrir"
             ),
             InlineKeyboardButton(
                 "🎱 Riesgo",
-                callback_data="tienda_categoria:intento_riesgo"
+                callback_data=f"tienda_categoria:{user_id}:intento_riesgo"
             )
         ],
         [
             InlineKeyboardButton(
                 "🎐 Lemas",
-                callback_data="tienda_categoria:lema"
+                callback_data=f"tienda_categoria:{user_id}:lema"
             )
         ]
     ]
@@ -367,6 +367,7 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 # --- CATEGORÍAS DE LA TIENDA ---
 
@@ -383,7 +384,14 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    tipo = query.data.split(":")[1]
+    _, propietario_id, tipo = query.data.split(":")
+
+    if propietario_id != user_id:
+        await query.answer(
+            "esa tienda no te pertenece. 🐇",
+            show_alert=True
+        )
+        return
 
     cur.execute(
         """
@@ -451,14 +459,14 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append([
                 InlineKeyboardButton(
                     f"{nombre} · {precio} 🪙",
-                    callback_data=f"tienda_item:{item_id}"
+                    callback_data=f"tienda_item:{user_id}:{item_id}"
                 )
             ])
 
     keyboard.append([
         InlineKeyboardButton(
             "↩ volver",
-            callback_data="tienda_inicio"
+            callback_data=f"tienda_inicio:{user_id}"
         )
     ])
 
@@ -466,6 +474,7 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
         texto,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 # --- MOSTRAR ARTÍCULO DE LA TIENDA ---
 
@@ -482,7 +491,16 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    item_id = int(query.data.split(":")[1])
+    _, propietario_id, item_id = query.data.split(":")
+
+    if propietario_id != user_id:
+        await query.answer(
+            "ese artículo no te pertenece. 🐇",
+            show_alert=True
+        )
+        return
+
+    item_id = int(item_id)
 
     cur.execute(
         """
@@ -509,13 +527,13 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 f"🛒 comprar · {precio} kooins",
-                callback_data=f"tienda_comprar:{item_id}"
+                callback_data=f"tienda_comprar:{user_id}:{item_id}"
             )
         ],
         [
             InlineKeyboardButton(
                 "↩ volver",
-                callback_data=f"tienda_categoria:{tipo}"
+                callback_data=f"tienda_categoria:{user_id}:{tipo}"
             )
         ]
     ]
@@ -529,6 +547,7 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 # --- COMPRAR DESDE LA TIENDA ---
 
@@ -544,7 +563,16 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    item_id = int(query.data.split(":")[1])
+    _, propietario_id, item_id = query.data.split(":")
+
+    if propietario_id != user_id:
+        await query.answer(
+            "esa compra no te pertenece. 🐇",
+            show_alert=True
+        )
+        return
+
+    item_id = int(item_id)
 
     cur.execute(
         """
@@ -560,14 +588,12 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not item:
         await query.answer(
-            "ese artículo no existe o ya no está disponible!",
+            "ese artículo ya no está disponible.",
             show_alert=True
         )
         return
 
     nombre, descripcion, precio, tipo, limite_diario = item
-
-    # --- Comprobar saldo ---
 
     cur.execute(
         "SELECT score FROM puntos WHERE user_id = %s",
@@ -586,14 +612,10 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
 
-    # --- Preparar usos diarios ---
-
     intentos_abrir, intentos_riesgo = preparar_uso_tienda(
         user_id,
         hoy
     )
-
-    # --- Comprobar límite diario ---
 
     if tipo == "intento_abrir":
         usados = intentos_abrir
@@ -612,10 +634,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- Lemas: comprobar si ya lo tiene ---
-
     if tipo == "lema":
-
         cur.execute(
             """
             SELECT id
@@ -628,12 +647,10 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if cur.fetchone():
             await query.answer(
-                "ya tienes este lema.",
+                "ya tienes este lema. 🎐",
                 show_alert=True
             )
             return
-
-    # --- Restar KOOINS ---
 
     cur.execute(
         """
@@ -643,8 +660,6 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """,
         (precio, user_id)
     )
-
-    # --- Registrar movimiento ---
 
     cur.execute(
         """
@@ -659,10 +674,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     )
 
-    # --- Guardar artículo en inventario ---
-
     if tipo == "lema":
-
         cur.execute(
             """
             INSERT INTO inventario
@@ -674,10 +686,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (user_id, item_id)
         )
 
-    # --- Registrar intento extra de abrir ---
-
     elif tipo == "intento_abrir":
-
         cur.execute(
             """
             UPDATE tienda_usos
@@ -687,10 +696,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (user_id,)
         )
 
-    # --- Registrar intento extra de riesgo ---
-
     elif tipo == "intento_riesgo":
-
         cur.execute(
             """
             UPDATE tienda_usos
@@ -709,9 +715,9 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "⠀⠀⠀\n"
         "⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
-        f"๑ {nombre}\n\n"
-        f"๑ gastaste: {precio} kooins\n"
-        f"๑ saldo restante: {nuevo_saldo} kooins\n\n"
+        f"{nombre}\n\n"
+        f"gastaste: {precio} kooins\n"
+        f"saldo restante: {nuevo_saldo} kooins\n\n"
         "gracias por gastar, jeje. 𖹭"
     )
 
@@ -721,21 +727,39 @@ async def tienda_inicio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    user_id = str(query.from_user.id)
+
+    if user_id in BLOQUEADOS:
+        await query.answer(
+            "no puedes participar en esta dinámica.",
+            show_alert=True
+        )
+        return
+
+    _, propietario_id = query.data.split(":")
+
+    if propietario_id != user_id:
+        await query.answer(
+            "esa tienda no te pertenece. 🐇",
+            show_alert=True
+        )
+        return
+
     keyboard = [
         [
             InlineKeyboardButton(
                 "🐰 Intentos",
-                callback_data="tienda_categoria:intento_abrir"
+                callback_data=f"tienda_categoria:{user_id}:intento_abrir"
             ),
             InlineKeyboardButton(
                 "🎱 Riesgo",
-                callback_data="tienda_categoria:intento_riesgo"
+                callback_data=f"tienda_categoria:{user_id}:intento_riesgo"
             )
         ],
         [
             InlineKeyboardButton(
                 "🎐 Lemas",
-                callback_data="tienda_categoria:lema"
+                callback_data=f"tienda_categoria:{user_id}:lema"
             )
         ]
     ]
@@ -4628,7 +4652,7 @@ app.add_handler(
     CallbackQueryHandler(tienda_comprar, pattern=r"^tienda_comprar:")
 )
 app.add_handler(
-    CallbackQueryHandler(tienda_inicio, pattern=r"^tienda_inicio$")
+    CallbackQueryHandler(tienda_inicio, pattern=r"^tienda_inicio")
 )
 app.add_handler(CommandHandler("kooins", kooins))
 app.add_handler(CommandHandler("obsequio", obsequio))
