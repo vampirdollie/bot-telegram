@@ -92,6 +92,12 @@ ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 SUPERADMINS = ["7943521525"]  # solo tú
 MAX_INTENTOS_RIESGO = 3
+# --- TIENDA ---
+PRECIO_EXTRA_ABRIR = 20
+PRECIO_EXTRA_RIESGO = 250
+
+MAX_EXTRAS_ABRIR = 1
+MAX_EXTRAS_RIESGO = 3
 
 # --- Bloqueados ---
 BLOQUEADOS = [
@@ -166,6 +172,501 @@ async def mensaje_bloqueo(update: Update):
 ⠀⠳⣼⣤⣤⣤⣤⣤⣧⠾⠁
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"""
     await update.message.reply_text(texto)
+
+# --- CONFIGURAR TIENDA ---
+
+def preparar_tienda():
+    items = [
+        (
+            "🐰 +1 intento de abrir",
+            "consigue un intento extra para /abrir.",
+            20,
+            "intento_abrir",
+            1
+        ),
+        (
+            "🎱 +1 intento de arriesgar",
+            "consigue un intento extra para /arriesgar.",
+            250,
+            "intento_riesgo",
+            3
+        ),
+        (
+            "♡ Gastador compulsivo",
+            "un lema para quienes no saben guardar kooins.",
+            100,
+            "lema",
+            None
+        ),
+        (
+            "°🛒.࿔ Coleccionista de KOOINS",
+            "porque acumular también es un talento.",
+            150,
+            "lema",
+            None
+        ),
+        (
+            "💸 ಄ No sé ahorrar",
+            "gastar kooins es parte del proceso.",
+            200,
+            "lema",
+            None
+        ),
+        (
+            "݁ ˖Ი𐑼⋆ KOOINS primero",
+            "las prioridades están claras.",
+            250,
+            "lema",
+            None
+        ),
+        (
+            "⤷ ゛⛀⛁ ˎˊ˗ Billetera de Koya",
+            "una billetera que nunca debería estar vacía.",
+            300,
+            "lema",
+            None
+        ),
+        (
+            "ִֶָ𓂃 ࣪˖ ִֶָ🐇་༘ Acumulador profesional",
+            "guardar kooins hasta que ya no quepan.",
+            350,
+            "lema",
+            None
+        ),
+        (
+            "（˶•̀ ᎑-˶）Sin miedo al riesgo. . 🎱",
+            "para quienes miran el botón de arriesgar y dicen sí.",
+            400,
+            "lema",
+            None
+        ),
+        (
+            "⚡ ᕙ(  •̀ ᗜ •́  )ᕗ Todo o nada",
+            "no hay punto medio.",
+            450,
+            "lema",
+            None
+        ),
+        (
+            "𖦹 Apostador de Koya",
+            "la suerte siempre puede cambiar.",
+            500,
+            "lema",
+            None
+        )
+    ]
+
+    for nombre, descripcion, precio, tipo, limite in items:
+        cur.execute(
+            """
+            SELECT id
+            FROM tienda_items
+            WHERE nombre = %s
+            """,
+            (nombre,)
+        )
+
+        if not cur.fetchone():
+            cur.execute(
+                """
+                INSERT INTO tienda_items
+                (nombre, descripcion, precio, tipo, limite_diario)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (nombre, descripcion, precio, tipo, limite)
+            )
+
+    conn.commit()
+
+
+preparar_tienda()
+
+def preparar_uso_tienda(user_id, hoy):
+    cur.execute(
+        """
+        SELECT fecha, intentos_abrir, intentos_riesgo
+        FROM tienda_usos
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    fila = cur.fetchone()
+
+    if not fila:
+        cur.execute(
+            """
+            INSERT INTO tienda_usos
+            (user_id, fecha, intentos_abrir, intentos_riesgo)
+            VALUES (%s, %s, 0, 0)
+            """,
+            (user_id, hoy)
+        )
+
+        conn.commit()
+
+        return 0, 0
+
+    fecha, intentos_abrir, intentos_riesgo = fila
+
+    if fecha != hoy:
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET fecha = %s,
+                intentos_abrir = 0,
+                intentos_riesgo = 0
+            WHERE user_id = %s
+            """,
+            (hoy, user_id)
+        )
+
+        conn.commit()
+
+        return 0, 0
+
+    return intentos_abrir, intentos_riesgo
+
+# --- TIENDA ---
+
+async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in BLOQUEADOS:
+        await mensaje_bloqueo(update)
+        return
+
+    cur.execute("""
+        SELECT id, nombre, descripcion, precio, tipo
+        FROM tienda_items
+        WHERE activo = TRUE
+        ORDER BY tipo, precio, id
+    """)
+
+    items = cur.fetchall()
+
+    texto = (
+        "⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
+        "gasta tus kooins en cositas para tu cuenta. 𖹭\n\n"
+    )
+
+    categoria_actual = None
+
+    for item_id, nombre, descripcion, precio, tipo in items:
+
+        if tipo != categoria_actual:
+
+            categoria_actual = tipo
+
+            if tipo == "intento_abrir":
+                texto += "🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦\n"
+            elif tipo == "intento_riesgo":
+                texto += "🎱 𝗥𝗜𝗘𝗦𝗚𝗢\n"
+            elif tipo == "lema":
+                texto += "🎐 𝗟𝗘𝗠𝗔𝗦\n"
+
+            texto += "\n"
+
+        texto += (
+            f"#{item_id} • {nombre}\n"
+            f"  {descripcion}\n"
+            f"  ✦ {precio} kooins\n\n"
+        )
+
+    texto += (
+        "para comprar usa:\n"
+        "/comprar <id>\n\n"
+        "ejemplo: /comprar 3"
+    )
+
+    await update.message.reply_text(texto)
+
+# --- COMPRAR EN TIENDA ---
+
+async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in BLOQUEADOS:
+        await mensaje_bloqueo(update)
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa el formato:\n"
+            "/comprar <id>\n\n"
+            "puedes ver los artículos disponibles con /tienda."
+        )
+        return
+
+    try:
+        item_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text(
+            "el ID del artículo debe ser un número."
+        )
+        return
+
+    cur.execute(
+        """
+        SELECT nombre, descripcion, precio, tipo, limite_diario
+        FROM tienda_items
+        WHERE id = %s
+          AND activo = TRUE
+        """,
+        (item_id,)
+    )
+
+    item = cur.fetchone()
+
+    if not item:
+        await update.message.reply_text(
+            "ese artículo no existe o ya no está disponible. ૮₍ ˃ ⤙ ˂ ₎ა"
+        )
+        return
+
+    nombre, descripcion, precio, tipo, limite_diario = item
+
+    # --- Comprobar saldo ---
+    cur.execute(
+        "SELECT score FROM puntos WHERE user_id = %s",
+        (user_id,)
+    )
+
+    fila = cur.fetchone()
+    saldo = fila[0] if fila else 0
+
+    if saldo < precio:
+        await update.message.reply_text(
+            f"no tienes suficientes kooins. ૮₍ ˃ ⤙ ˂ ₎ა\n\n"
+            f"precio: {precio} kooins\n"
+            f"tienes: {saldo} kooins"
+        )
+        return
+
+    hoy = datetime.datetime.now(ZONA_COLOMBIA).date()
+
+    # --- Preparar usos diarios ---
+    intentos_abrir, intentos_riesgo = preparar_uso_tienda(
+        user_id,
+        hoy
+    )
+
+    # --- Comprobar límite diario ---
+    if tipo == "intento_abrir":
+        usados = intentos_abrir
+    elif tipo == "intento_riesgo":
+        usados = intentos_riesgo
+    else:
+        usados = 0
+
+    if limite_diario is not None and usados >= limite_diario:
+        await update.message.reply_text(
+            f"ya compraste el máximo de este artículo hoy.\n"
+            f"límite: {limite_diario} compras. 𖹭"
+        )
+        return
+
+    # --- Lemas: comprobar si ya lo tiene ---
+    if tipo == "lema":
+        cur.execute(
+            """
+            SELECT id
+            FROM inventario
+            WHERE user_id = %s
+              AND item_id = %s
+            """,
+            (user_id, item_id)
+        )
+
+        if cur.fetchone():
+            await update.message.reply_text(
+                "ya tienes este lema. 🎐"
+            )
+            return
+
+    # --- Restar KOOINS ---
+    cur.execute(
+        """
+        UPDATE puntos
+        SET score = score - %s
+        WHERE user_id = %s
+        """,
+        (precio, user_id)
+    )
+
+    # --- Registrar movimiento ---
+    cur.execute(
+        """
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+        """,
+        (
+            user_id,
+            -precio,
+            "tienda"
+        )
+    )
+
+    # --- Guardar artículo en inventario ---
+    if tipo == "lema":
+        cur.execute(
+            """
+            INSERT INTO inventario
+            (user_id, item_id, cantidad)
+            VALUES (%s, %s, 1)
+            ON CONFLICT (user_id, item_id)
+            DO UPDATE SET cantidad = inventario.cantidad + 1
+            """,
+            (user_id, item_id)
+        )
+
+    # --- Registrar intento extra comprado ---
+    elif tipo == "intento_abrir":
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET intentos_abrir = intentos_abrir + 1
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+    elif tipo == "intento_riesgo":
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET intentos_riesgo = intentos_riesgo + 1
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+    conn.commit()
+
+    nuevo_saldo = saldo - precio
+
+    await update.message.reply_text(
+        f"✦ compra realizada.\n\n"
+        f"{nombre}\n"
+        f"gastaste: {precio} kooins\n"
+        f"saldo restante: {nuevo_saldo} kooins\n\n"
+        f"gracias por gastar, jeje. 𖹭"
+    )
+
+# --- MIS LEMAS ---
+
+async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in BLOQUEADOS:
+        await mensaje_bloqueo(update)
+        return
+
+    cur.execute(
+        """
+        SELECT
+            tienda_items.id,
+            tienda_items.nombre,
+            tienda_items.descripcion
+        FROM inventario
+        JOIN tienda_items
+            ON inventario.item_id = tienda_items.id
+        WHERE inventario.user_id = %s
+          AND tienda_items.tipo = 'lema'
+        ORDER BY tienda_items.id
+        """,
+        (user_id,)
+    )
+
+    lemas = cur.fetchall()
+
+    if not lemas:
+        await update.message.reply_text(
+            "⠀⠀⠀🎐 ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
+            "todavía no tienes ningún lema.\n\n"
+            "puedes conseguirlos en /tienda. 𖹭"
+        )
+        return
+
+    texto = (
+        "⠀⠀⠀🎐 ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
+    )
+
+    for item_id, nombre, descripcion in lemas:
+        texto += (
+            f"#{item_id} • {nombre}\n"
+            f"  {descripcion}\n\n"
+        )
+
+    texto += (
+        "para equipar uno:\n"
+        "/equiparlema <id>"
+    )
+
+    await update.message.reply_text(texto)
+
+# --- EQUIPAR LEMA ---
+
+async def equiparlema(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in BLOQUEADOS:
+        await mensaje_bloqueo(update)
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "usa:\n"
+            "/equiparlema <id>"
+        )
+        return
+
+    try:
+        item_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text(
+            "el ID debe ser un número."
+        )
+        return
+
+    cur.execute(
+        """
+        SELECT tienda_items.nombre
+        FROM inventario
+        JOIN tienda_items
+            ON inventario.item_id = tienda_items.id
+        WHERE inventario.user_id = %s
+          AND tienda_items.id = %s
+          AND tienda_items.tipo = 'lema'
+        """,
+        (user_id, item_id)
+    )
+
+    lema = cur.fetchone()
+
+    if not lema:
+        await update.message.reply_text(
+            "no tienes ese lema. 🎐"
+        )
+        return
+
+    cur.execute(
+        """
+        UPDATE puntos
+        SET lema_id = %s
+        WHERE user_id = %s
+        """,
+        (item_id, user_id)
+    )
+
+    conn.commit()
+
+    await update.message.reply_text(
+        f"🎐 lema equipado:\n\n"
+        f"{lema[0]}\n\n"
+        "ahora aparecerá en tu perfil de Koya. 𖹭"
+    )
 
 # --- START ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -571,21 +1072,41 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     row = cur.fetchone()
 
     if row and row[0] == hoy:
-        await update.message.reply_text(
-            "ya gastaste tu intento, vuelve luego con más suerte. 𖹭"
-        )
-        return
 
-    # --- Registrar el intento en PostgreSQL ---
-    cur.execute(
-        """
-        INSERT INTO usos (user_id, fecha)
-        VALUES (%s, %s)
-        ON CONFLICT (user_id)
-        DO UPDATE SET fecha = EXCLUDED.fecha
-        """,
-        (user_id, hoy)
-    )
+        # --- Comprobar si tiene un intento extra comprado ---
+        intentos_abrir, _ = preparar_uso_tienda(user_id, hoy)
+
+        if intentos_abrir <= 0:
+            await update.message.reply_text(
+                "ya gastaste tu intento de hoy. 𖹭\n\n"
+                "si quieres jugar otra vez, puedes comprar un intento "
+                "extra en /tienda."
+            )
+            return
+
+        # --- Consumir el intento extra ---
+        cur.execute(
+            """
+            UPDATE tienda_usos
+            SET intentos_abrir = intentos_abrir - 1
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+        conn.commit()
+
+    else:
+        # --- Registrar el intento normal del día ---
+        cur.execute(
+            """
+            INSERT INTO usos (user_id, fecha)
+            VALUES (%s, %s)
+            ON CONFLICT (user_id)
+            DO UPDATE SET fecha = EXCLUDED.fecha
+            """,
+            (user_id, hoy)
+        )
 
     username = (
         f"@{update.effective_user.username}"
@@ -3655,6 +4176,10 @@ app.add_handler(CommandHandler("jackpot", jackpot))
 app.add_handler(CommandHandler("startjackpot", startjackpot))
 app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
 app.add_handler(CommandHandler("movbankooins", bankooins))
+app.add_handler(CommandHandler("tienda", tienda))
+app.add_handler(CommandHandler("comprar", comprar))
+app.add_handler(CommandHandler("mislemas", mislemas))
+app.add_handler(CommandHandler("equiparlema", equiparlema))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto_handler))
 
 app.run_webhook(
