@@ -997,7 +997,7 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if lema_koala:
         texto += (
-            "🐨 𝗟𝗘𝗠𝗔 𝗗𝗘 𝗞𝗢𝗬𝗔𝗦\n\n""
+            "🐨 𝗟𝗘𝗠𝗔 𝗗𝗘 𝗞𝗢𝗬𝗔𝗦\n\n"
             f"  {lema_koala}\n"
             f"  tienes {koalas} koyas atrapados.\n\n"
             "este lema se obtiene automáticamente\n"
