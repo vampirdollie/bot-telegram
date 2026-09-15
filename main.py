@@ -3964,6 +3964,125 @@ async def startjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀qué suerte tan bonita. 𖹭"
     )
 
+# --- NUEVO FAV JACKPOT (solo admin) ---
+async def nuevofav(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if not es_admin(user_id):
+        return
+
+    # Buscar el último jackpot terminado
+    cur.execute("""
+        SELECT id, pozo, ganador_id, ganador_username
+        FROM jackpots
+        WHERE activa = FALSE
+          AND ganador_id IS NOT NULL
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    jackpot_actual = cur.fetchone()
+
+    if not jackpot_actual:
+        await update.message.reply_text(
+            "no hay ningún jackpot terminado para elegir un nuevo fav. ૮๑ˊ  ˋ๑ა"
+        )
+        return
+
+    jackpot_id, pozo, ganador_anterior_id, ganador_anterior_username = jackpot_actual
+
+    # Buscar participantes de esa ronda,
+    # excluyendo al ganador anterior
+    cur.execute("""
+        SELECT user_id, username
+        FROM jackpot_participantes
+        WHERE jackpot_id = %s
+          AND user_id != %s
+    """, (
+        jackpot_id,
+        ganador_anterior_id
+    ))
+
+    participantes = cur.fetchall()
+
+    if not participantes:
+        await update.message.reply_text(
+            "no hay otra personita disponible para elegir. ૮๑ˊ  ˋ๑ა\n\n"
+            "el ganador anterior es la única persona que quedó en esta ronda."
+        )
+        return
+
+    # Elegir nuevo ganador al azar
+    nuevo_ganador = random.choice(participantes)
+
+    nuevo_ganador_id, nuevo_ganador_username = nuevo_ganador
+
+    # Quitar el premio al ganador anterior
+    cur.execute("""
+        UPDATE puntos
+        SET score = score - %s
+        WHERE user_id = %s
+    """, (
+        pozo,
+        ganador_anterior_id
+    ))
+
+    # Registrar reversión del premio anterior
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        ganador_anterior_id,
+        -pozo,
+        "jackpot"
+    ))
+
+    # Dar el premio al nuevo ganador
+    cur.execute("""
+        UPDATE puntos
+        SET score = score + %s
+        WHERE user_id = %s
+    """, (
+        pozo,
+        nuevo_ganador_id
+    ))
+
+    # Registrar nuevo premio
+    cur.execute("""
+        INSERT INTO movimientos_kooins
+        (user_id, cantidad, tipo)
+        VALUES (%s, %s, %s)
+    """, (
+        nuevo_ganador_id,
+        pozo,
+        "jackpot"
+    ))
+
+    # Cambiar el ganador guardado del jackpot
+    cur.execute("""
+        UPDATE jackpots
+        SET ganador_id = %s,
+            ganador_username = %s
+        WHERE id = %s
+    """, (
+        nuevo_ganador_id,
+        nuevo_ganador_username,
+        jackpot_id
+    ))
+
+    conn.commit()
+
+    await update.message.reply_text(
+        f"⠀⠀⠀\n"
+        f"⠀⏔⏔ ꒰ 𝗖𝗢𝗢𝗞𝗬'𝗦 𝗝𝗔𝗖𝗞𝗣𝗢𝗧 ꒱ ⏔⏔\n"
+        f"⠀๑ el pozo cambió de favorito\n\n"
+        f"⠀⠀⠀✿ fav anterior: {ganador_anterior_username}\n"
+        f"⠀⠀⠀𖹭 nuevo fav: {nuevo_ganador_username}\n\n"
+        f"⠀⠀⠀๑ premio: {pozo} kooins\n"
+        f"⠀⠀⠀el nuevo fav se queda con todo el pozo. 𖹭"
+    )
+
 # --- CANCELAR JACKPOT (solo admin) ---
 async def cancelarjackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -4690,6 +4809,7 @@ app.add_handler(CommandHandler("darintento", darintento))
 app.add_handler(CommandHandler("verintentos", verintentos))
 app.add_handler(CommandHandler("jackpot", jackpot))
 app.add_handler(CommandHandler("startjackpot", startjackpot))
+app.add_handler(CommandHandler("nuevofav", nuevofav))
 app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
 app.add_handler(CommandHandler("movbankooins", bankooins))
 app.add_handler(CommandHandler("tienda", tienda))
