@@ -708,7 +708,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        "⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
         f"๑ {nombre}\n\n"
         f"๑ gastaste: {precio} kooins\n"
         f"๑ saldo restante: {nuevo_saldo} kooins\n\n"
@@ -917,7 +917,7 @@ async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        "⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
         f"๑ {nombre}\n"
         f"๑ gastaste: {precio} kooins\n"
         f"๑ saldo restante: {nuevo_saldo} kooins\n\n"
@@ -3045,9 +3045,9 @@ async def arriesgar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intentos >= limite and intentos_riesgo_tienda <= 0:
         await update.message.reply_text(
-            "ya utilizaste todos tus intentos de hoy.\n"
+            "ya utilizaste todos tus intentos de hoy.\n\n"
             f"puedes comprar más intentos en /tienda o pedirle a un admin que te regale más, ludopata. ᓬ(ᵔ⤙ᵔ๑)ᕒ\n\n"
-            f"límite actual: {limite} intentos.\n\n"
+            f"๑ límite actual: {limite} intentos.\n\n"
             "vuelve mañana para tentar tu suerte otra vez. 𖹭"
         )
         return
@@ -3582,7 +3582,7 @@ async def jackpot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not es_admin(user_id):
         await update.message.reply_text(
-            "¡solo los admin autorizados pueden iniciar una rifa!"
+            "¡solo los admins autorizados pueden iniciar el jackpot!"
         )
         return
 
