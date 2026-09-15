@@ -2418,7 +2418,7 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
-        f"⠀⠀⠀✿ lema de otorgado:\n"
+        f"⠀⠀⠀✿ lema otorgado:\n"
         f"⠀⠀⠀{lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
         f"⠀⠀⠀✿ lema equipado:\n"
         f"⠀⠀⠀{lema_equipado or 'aún no tienes un lema equipado'}\n\n"
