@@ -415,22 +415,21 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "tu cuenta. 𖹭\n\n"
         )
 
-        keyboard = []
-
         for item_id, nombre, item_descripcion, precio in items:
 
             texto += (
-                f"✦ {nombre}\n"
+                f"✦ #{item_id} • {nombre}\n"
                 f"  {item_descripcion}\n"
                 f"  ๑ {precio} kooins\n\n"
             )
 
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"🛒 comprar · {precio} kooins",
-                    callback_data=f"tienda_item:{item_id}"
-                )
-            ])
+        texto += (
+            "para comprar un lema:\n"
+            "/comprar <id>\n\n"
+            "ejemplo: /comprar 3"
+        )
+
+        keyboard = []
 
     else:
 
@@ -946,6 +945,8 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mensaje_bloqueo(update)
         return
 
+    # --- LEMAS COMPRADOS ---
+
     cur.execute(
         """
         SELECT
@@ -964,17 +965,35 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lemas = cur.fetchall()
 
-    if not lemas:
-        await update.message.reply_text(
-            "⠀⠀⠀🎐 ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
-            "todavía no tienes ningún lema.\n\n"
-            "puedes conseguirlos en /tienda. 𖹭"
-        )
-        return
+    # --- CONTAR KOALAS ---
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM koala_evento
+        WHERE ganador_id = %s
+        """,
+        (user_id,)
+    )
+
+    koalas = cur.fetchone()[0]
+
+    lema_koala = obtener_lema_koala(koalas)
 
     texto = (
         "⠀⠀⠀🎐 ᛝ 𝗠𝗜𝗦 𝗟𝗘𝗠𝗔𝗦\n\n"
     )
+
+    # --- LEMA AUTOMÁTICO DE KOALAS ---
+
+    if lema_koala:
+        texto += (
+            f"🐨 lema de Koyas\n"
+            f"  {lema_koala}\n"
+            f"  tienes {koalas} Koyas atrapados.\n\n"
+        )
+
+    # --- LEMAS COMPRADOS ---
 
     for item_id, nombre, descripcion in lemas:
         texto += (
@@ -982,10 +1001,17 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"  {descripcion}\n\n"
         )
 
-    texto += (
-        "para equipar uno:\n"
-        "/equiparlema <id>"
-    )
+    if not lema_koala and not lemas:
+        texto += (
+            "todavía no tienes ningún lema.\n\n"
+            "puedes conseguirlos en /tienda. 𖹭"
+        )
+
+    else:
+        texto += (
+            "para equipar un lema comprado:\n"
+            "/equiparlema <id>"
+        )
 
     await update.message.reply_text(texto)
 
