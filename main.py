@@ -192,8 +192,9 @@ def preparar_tienda():
             3
         ),
         (
-            "♡ Gastador compulsivo",
-            "un lema para quienes no saben guardar kooins.",
+            "𖹭 Gastador compulsivo",
+            "un lema para quienes no saben\n"
+            " guardar kooins.",
             100,
             "lema",
             None
@@ -221,7 +222,8 @@ def preparar_tienda():
         ),
         (
             "⤷ ゛⛀⛁ ˎˊ˗ Billetera de Koya",
-            "una billetera que nunca debería estar vacía.",
+            "una billetera que nunca debería\n"
+            " estar vacía.",
             300,
             "lema",
             None
@@ -235,7 +237,8 @@ def preparar_tienda():
         ),
         (
             "（˶•̀ ᎑-˶）Sin miedo al riesgo. . 🎱",
-            "para quienes miran el botón de arriesgar y dicen sí.",
+            "para quienes miran el botón de arriesgar\n"
+            " y dicen sí.",
             400,
             "lema",
             None
@@ -360,7 +363,8 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⠀⠀⠀⠀🛍️ ᛝ 𝗞𝗢𝗢𝗜𝗡𝗦 𝗦𝗛𝗢𝗣\n\n"
         "gasta tus kooins en cositas para\n"
         "personalizar tu cuenta. 𖹭\n\n"
-        "elige una categoría:",
+        "elige una categoría:\n"
+        "⠀",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -395,22 +399,22 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     items = cur.fetchall()
 
     if tipo == "intento_abrir":
-        titulo = "🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦"
+        titulo = "꒰⠀🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦⠀꒱"
         descripcion = "consigue intentos extra para /abrir. 𖹭"
 
     elif tipo == "intento_riesgo":
-        titulo = "🎱 𝗥𝗜𝗘𝗦𝗚𝗢"
+        titulo = "꒰⠀🎱 𝗥𝗜𝗘𝗦𝗚𝗢⠀꒱"
         descripcion = "consigue intentos extra para /arriesgar. 𖹭"
 
     else:
-        titulo = "🎐 𝗟𝗘𝗠𝗔𝗦"
+        titulo = "꒰⠀🎐 𝗟𝗘𝗠𝗔𝗦⠀꒱"
         descripcion = "colecciona lemas para personalizar tu cuenta. 𖹭"
 
     if tipo == "lema":
 
         texto = (
             "⠀⠀⠀\n"
-            "⠀⠀⠀⠀⠀⠀🎐 𝗟𝗘𝗠𝗔𝗦\n\n"
+            "⠀⠀⠀⠀⠀⠀⠀꒰⠀🎐 𝗟𝗘𝗠𝗔𝗦⠀꒱\n\n"
             "colecciona lemas para personalizar\n"
             "tu cuenta. 𖹭\n\n"
         )
@@ -437,7 +441,8 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⠀⠀⠀\n"
             f"⠀⠀⠀⠀⠀⠀{titulo}\n\n"
             f"{descripcion}\n\n"
-            "elige un artículo:"
+            "elige un artículo:\n"
+            "⠀"
         )
 
         keyboard = []
@@ -520,7 +525,8 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀⠀⠀⠀{nombre}\n\n"
         f"{descripcion}\n\n"
         f"๑ precio: {precio} kooins\n\n"
-        "¿quieres comprarlo?",
+        "¿quieres comprarlo?\n"
+        "⠀",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -554,7 +560,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not item:
         await query.answer(
-            "ese artículo ya no está disponible.",
+            "ese artículo no existe o ya no está disponible!",
             show_alert=True
         )
         return
@@ -988,29 +994,33 @@ async def mislemas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if lema_koala:
         texto += (
-            f"🐨 lema de Koyas\n"
+            "🐨 𝗟𝗘𝗠𝗔 𝗗𝗘 𝗞𝗢𝗬𝗔𝗦\n"
             f"  {lema_koala}\n"
             f"  tienes {koalas} Koyas atrapados.\n\n"
+            "este lema se obtiene automáticamente\n"
+            "por tus Koyas y no necesita equiparse. 𖹭\n\n"
         )
 
     # --- LEMAS COMPRADOS ---
 
-    for item_id, nombre, descripcion in lemas:
-        texto += (
-            f"#{item_id} • {nombre}\n"
-            f"  {descripcion}\n\n"
-        )
+    if lemas:
+        texto += "🎐 𝗟𝗘𝗠𝗔𝗦 𝗖𝗢𝗠𝗣𝗥𝗔𝗗𝗢𝗦\n\n"
 
-    if not lema_koala and not lemas:
-        texto += (
-            "todavía no tienes ningún lema.\n\n"
-            "puedes conseguirlos en /tienda. 𖹭"
-        )
+        for item_id, nombre, descripcion in lemas:
+            texto += (
+                f"#{item_id} • {nombre}\n"
+                f"  {descripcion}\n\n"
+            )
 
-    else:
         texto += (
             "para equipar un lema comprado:\n"
             "/equiparlema <id>"
+        )
+
+    elif not lema_koala:
+        texto += (
+            "todavía no tienes ningún lema.\n\n"
+            "puedes conseguirlos en /tienda. 𖹭"
         )
 
     await update.message.reply_text(texto)
@@ -2348,6 +2358,8 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total_usuario = total
             break
 
+    lema_koala = obtener_lema_koala(koalas_usuario)
+
     if puesto is None:
         await update.message.reply_text(
             "⠀⠀⠀🐨 ᛝ 𝗠𝗜𝗦 𝗞𝗢𝗔𝗟𝗔𝗦  𖹭\n\n"
@@ -2363,7 +2375,8 @@ async def koyas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⠀⠀⠀✿ puesto: #{puesto}\n"
         f"⠀⠀⠀✿ koalas atrapados: {koalas_usuario}\n"
         f"⠀⠀⠀✿ total: {total_usuario} kooins\n\n"
-        F"⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
+        f"⠀⠀⠀🎐 lema: {lema_koala or 'aún no tienes un lema de Koyas'}\n\n"
+        "⠀⠀⠀︶ ֢ ⏝ ֢ ︶ ֢ ⏝ ֢ ︶"
     )
 
 # --- HANDLER PARA "." ---
