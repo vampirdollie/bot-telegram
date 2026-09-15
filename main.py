@@ -1111,7 +1111,7 @@ async def equiparlema(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"⠀⠀⠀🎐 ᛝ Lema equipado:\n\n"
         f"{lema[0]}\n\n"
-        "ahora aparecerá en tu perfil de Koya. 𖹭"
+        "ahora aparecerá en tu perfil de /koyas. 𖹭"
     )
 
 # --- START ---
