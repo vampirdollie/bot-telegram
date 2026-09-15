@@ -342,11 +342,11 @@ async def tienda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
-                "🐰 Intentos",
+                "🐰 Abrir",
                 callback_data=f"tienda_categoria:{user_id}:intento_abrir"
             ),
             InlineKeyboardButton(
-                "🎱 Riesgo",
+                "🎱 Intentos",
                 callback_data=f"tienda_categoria:{user_id}:intento_riesgo"
             )
         ],
@@ -407,11 +407,11 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     items = cur.fetchall()
 
     if tipo == "intento_abrir":
-        titulo = "꒰⠀🐰 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦⠀꒱"
-        descripcion = "consigue intentos extra para /abrir. 𖹭"
+        titulo = "꒰⠀🐰 𝗔𝗕𝗥𝗜𝗥⠀꒱"
+        descripcion = "consigue un intento extra para /abrir. 𖹭"
 
     elif tipo == "intento_riesgo":
-        titulo = "꒰⠀🎱 𝗥𝗜𝗘𝗦𝗚𝗢⠀꒱"
+        titulo = "꒰⠀🎱 𝗜𝗡𝗧𝗘𝗡𝗧𝗢𝗦⠀꒱"
         descripcion = "consigue intentos extra para /arriesgar. 𖹭"
 
     else:
@@ -447,7 +447,7 @@ async def tienda_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         texto = (
             "⠀⠀⠀\n"
-            f"⠀⠀⠀⠀⠀⠀{titulo}\n\n"
+            f"⠀⠀⠀⠀{titulo}\n\n"
             f"{descripcion}\n\n"
             "elige un artículo:\n"
             "⠀"
@@ -540,7 +540,7 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "⠀⠀⠀\n"
-        f"⠀⠀⠀⠀⠀⠀{nombre}\n\n"
+        f"⠀⠀⠀⠀{nombre}\n\n"
         f"{descripcion}\n\n"
         f"๑ precio: {precio} kooins\n\n"
         "¿quieres comprarlo?\n"
@@ -748,11 +748,11 @@ async def tienda_inicio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
-                "🐰 Intentos",
+                "🐰 Abrir",
                 callback_data=f"tienda_categoria:{user_id}:intento_abrir"
             ),
             InlineKeyboardButton(
-                "🎱 Riesgo",
+                "🎱 Intentos",
                 callback_data=f"tienda_categoria:{user_id}:intento_riesgo"
             )
         ],
