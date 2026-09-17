@@ -173,8 +173,6 @@ async def mensaje_bloqueo(update: Update):
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"""
     await update.message.reply_text(texto)
 
-# --- CONFIGURAR TIENDA ---
-
 def preparar_tienda():
     items = [
         (
@@ -193,8 +191,7 @@ def preparar_tienda():
         ),
         (
             "𖹭 Gastador compulsivo",
-            "un lema para quienes no saben\n"
-            " guardar kooins.",
+            "un lema para quienes no saben\n guardar kooins.",
             100,
             "lema",
             None
@@ -222,8 +219,7 @@ def preparar_tienda():
         ),
         (
             "⤷ ゛⛀⛁ ˎˊ˗ Billetera de Koya",
-            "una billetera que nunca debería\n"
-            " estar vacía.",
+            "una billetera que nunca debería\n estar vacía.",
             250,
             "lema",
             None
@@ -237,8 +233,7 @@ def preparar_tienda():
         ),
         (
             "（˶•̀ ᎑-˶）Sin miedo al riesgo. . 🎱",
-            "para quienes miran el botón de arriesgar\n"
-            " y dicen sí.",
+            "para quienes miran el botón de arriesgar\n y dicen sí.",
             300,
             "lema",
             None
@@ -278,6 +273,19 @@ def preparar_tienda():
                 """,
                 (nombre, descripcion, precio, tipo, limite)
             )
+        else:
+            # Fuerza la actualización del límite por si ya existía el registro
+            cur.execute(
+                """
+                UPDATE tienda_items
+                SET limite_diario = %s,
+                    precio = %s,
+                    descripcion = %s,
+                    tipo = %s
+                WHERE nombre = %s
+                """,
+                (limite, precio, descripcion, tipo, nombre)
+            )
 
     conn.commit()
 
@@ -305,13 +313,12 @@ def preparar_uso_tienda(user_id, hoy):
             """,
             (user_id, hoy)
         )
-
         conn.commit()
-
         return 0, 0
 
     fecha, intentos_abrir, intentos_riesgo = fila
 
+    # Si la fecha cambió, reseteamos a 0 y RETORNAMOS 0, 0 (no las variables antiguas)
     if fecha != hoy:
         cur.execute(
             """
@@ -323,9 +330,7 @@ def preparar_uso_tienda(user_id, hoy):
             """,
             (hoy, user_id)
         )
-
         conn.commit()
-
         return 0, 0
 
     return intentos_abrir, intentos_riesgo
@@ -690,20 +695,22 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cur.execute(
             """
             UPDATE tienda_usos
-            SET intentos_abrir = intentos_abrir + 1
+            SET intentos_abrir = intentos_abrir + 1,
+                fecha = %s
             WHERE user_id = %s
             """,
-            (user_id,)
+            (hoy, user_id)
         )
 
     elif tipo == "intento_riesgo":
         cur.execute(
             """
             UPDATE tienda_usos
-            SET intentos_riesgo = intentos_riesgo + 1
+            SET intentos_riesgo = intentos_riesgo + 1,
+                fecha = %s
             WHERE user_id = %s
             """,
-            (user_id,)
+            (hoy, user_id)
         )
 
     conn.commit()
@@ -919,20 +926,22 @@ async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cur.execute(
             """
             UPDATE tienda_usos
-            SET intentos_abrir = intentos_abrir + 1
+            SET intentos_abrir = intentos_abrir + 1,
+                fecha = %s
             WHERE user_id = %s
             """,
-            (user_id,)
+            (hoy, user_id)
         )
 
     elif tipo == "intento_riesgo":
         cur.execute(
             """
             UPDATE tienda_usos
-            SET intentos_riesgo = intentos_riesgo + 1
+            SET intentos_riesgo = intentos_riesgo + 1,
+                fecha = %s
             WHERE user_id = %s
             """,
-            (user_id,)
+            (hoy, user_id)
         )
 
     conn.commit()
