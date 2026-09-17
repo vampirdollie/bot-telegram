@@ -295,7 +295,7 @@ preparar_tienda()
 def preparar_uso_tienda(user_id, hoy):
     cur.execute(
         """
-        SELECT fecha, intentos_abrir, intentos_riesgo
+        SELECT fecha, intentos_abrir, intentos_riesgo, compras_abrir
         FROM tienda_usos
         WHERE user_id = %s
         """,
@@ -308,29 +308,33 @@ def preparar_uso_tienda(user_id, hoy):
         cur.execute(
             """
             INSERT INTO tienda_usos
-            (user_id, fecha, intentos_abrir, intentos_riesgo)
-            VALUES (%s, %s, 0, 0)
+            (user_id, fecha, intentos_abrir, intentos_riesgo, compras_abrir)
+            VALUES (%s, %s, 0, 0, 0)
             """,
             (user_id, hoy)
         )
+
         conn.commit()
+
         return 0, 0
 
-    fecha, intentos_abrir, intentos_riesgo = fila
+    fecha, intentos_abrir, intentos_riesgo, compras_abrir = fila
 
-    # Si la fecha cambió, reseteamos a 0 y RETORNAMOS 0, 0 (no las variables antiguas)
     if fecha != hoy:
         cur.execute(
             """
             UPDATE tienda_usos
             SET fecha = %s,
                 intentos_abrir = 0,
-                intentos_riesgo = 0
+                intentos_riesgo = 0,
+                compras_abrir = 0
             WHERE user_id = %s
             """,
             (hoy, user_id)
         )
+
         conn.commit()
+
         return 0, 0
 
     return intentos_abrir, intentos_riesgo
@@ -556,6 +560,8 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- COMPRAR DESDE LA TIENDA ---
 
+# --- COMPRAR DESDE LA TIENDA ---
+
 async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
@@ -622,8 +628,21 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         hoy
     )
 
+    # --- Comprobar compras realizadas hoy ---
+    cur.execute(
+        """
+        SELECT compras_abrir
+        FROM tienda_usos
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    fila_compras = cur.fetchone()
+    compras_abrir = fila_compras[0] if fila_compras else 0
+
     if tipo == "intento_abrir":
-        usados = intentos_abrir
+        usados = compras_abrir
 
     elif tipo == "intento_riesgo":
         usados = intentos_riesgo
@@ -639,6 +658,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # --- Comprobar si ya tiene este lema ---
     if tipo == "lema":
         cur.execute(
             """
@@ -657,6 +677,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+    # --- Descontar kooins ---
     cur.execute(
         """
         UPDATE puntos
@@ -666,6 +687,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         (precio, user_id)
     )
 
+    # --- Registrar movimiento ---
     cur.execute(
         """
         INSERT INTO movimientos_kooins
@@ -679,7 +701,9 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     )
 
+    # --- Dar el artículo comprado ---
     if tipo == "lema":
+
         cur.execute(
             """
             INSERT INTO inventario
@@ -692,25 +716,26 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif tipo == "intento_abrir":
+
         cur.execute(
             """
             UPDATE tienda_usos
             SET intentos_abrir = intentos_abrir + 1,
-                fecha = %s
+                compras_abrir = compras_abrir + 1
             WHERE user_id = %s
             """,
-            (hoy, user_id)
+            (user_id,)
         )
 
     elif tipo == "intento_riesgo":
+
         cur.execute(
             """
             UPDATE tienda_usos
-            SET intentos_riesgo = intentos_riesgo + 1,
-                fecha = %s
+            SET intentos_riesgo = intentos_riesgo + 1
             WHERE user_id = %s
             """,
-            (hoy, user_id)
+            (user_id,)
         )
 
     conn.commit()
@@ -721,7 +746,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "⠀⠀⠀\n"
-        "⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
         f"{nombre}\n\n"
         f"gastaste: {precio} kooins\n"
         f"saldo restante: {nuevo_saldo} kooins\n\n"
@@ -1529,7 +1554,10 @@ async def abrir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if row and row[0] == hoy:
 
         # --- Comprobar si tiene un intento extra comprado ---
-        intentos_abrir, _ = preparar_uso_tienda(user_id, hoy)
+        intentos_abrir, _ = preparar_uso_tienda(
+            user_id,
+            hoy
+        )
 
         if intentos_abrir <= 0:
             await update.message.reply_text(
