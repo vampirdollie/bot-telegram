@@ -4769,7 +4769,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- MAIN ---
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("cmds", cmds))
+app.add_handler(CommandHandler("coomds", cmds))
 app.add_handler(
     CallbackQueryHandler(
         cambiar_cmds,
@@ -4849,7 +4849,7 @@ app.add_handler(CommandHandler("startjackpot", startjackpot))
 app.add_handler(CommandHandler("nuevofav", nuevofav))
 app.add_handler(CommandHandler("cancelarjackpot", cancelarjackpot))
 app.add_handler(CommandHandler("movbankooins", bankooins))
-app.add_handler(CommandHandler("arreglartienda", tienda))
+app.add_handler(CommandHandler("tienda", tienda))
 app.add_handler(CommandHandler("comprar", comprar))
 app.add_handler(CommandHandler("mislemas", mislemas))
 app.add_handler(CommandHandler("equiparlema", equiparlema))
