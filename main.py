@@ -660,7 +660,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if limite_diario is not None and usados >= limite_diario:
         await query.answer(
-            f"ya compraste el máximo de este artículo hoy.\n"
+            f"ya compraste el máximo de este artículo.\n"
             f"límite: {limite_diario}.",
             show_alert=True
         )
