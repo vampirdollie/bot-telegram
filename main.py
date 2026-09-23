@@ -173,6 +173,16 @@ async def mensaje_bloqueo(update: Update):
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"""
     await update.message.reply_text(texto)
 
+# --- CONVERTIR FECHA UTC A HORA COLOMBIA ---
+def fecha_colombia(fecha):
+    if fecha is None:
+        return fecha
+
+    if fecha.tzinfo is None:
+        fecha = fecha.replace(tzinfo=datetime.timezone.utc)
+
+    return fecha.astimezone(ZONA_COLOMBIA)
+    
 def preparar_tienda():
     items = [
         (
@@ -560,8 +570,6 @@ async def tienda_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- COMPRAR DESDE LA TIENDA ---
 
-# --- COMPRAR DESDE LA TIENDA ---
-
 async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
@@ -746,7 +754,7 @@ async def tienda_comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "⠀⠀⠀\n"
-        "⠀⠀⠀⠀⠀⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
+        "⠀✦ 𝗖𝗢𝗠𝗣𝗥𝗔 𝗥𝗘𝗔𝗟𝗜𝗭𝗔𝗗𝗔\n\n"
         f"{nombre}\n\n"
         f"gastaste: {precio} kooins\n"
         f"saldo restante: {nuevo_saldo} kooins\n\n"
@@ -4695,13 +4703,27 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     movimientos = cur.fetchall()
 
+    # ==========================================
+    # CREAR MOVIMIENTOS CON HORA COLOMBIA
+    # ==========================================
+
+    movimientos_colombia = []
+
+    for cantidad, tipo, fecha in movimientos:
+
+        fecha_local = fecha_colombia(fecha)
+
+        movimientos_colombia.append(
+            (cantidad, tipo, fecha_local)
+        )
+
     mensaje = (
         f"⠀⠀⠀ ꒰ 𝗕𝗔𝗡𝗞𝗢𝗢𝗜𝗡𝗦 ꒱\n\n"
         f"𖹭 usuario: {username}\n"
         f"𖹭 saldo actual: {saldo_actual} kooins\n\n"
     )
 
-    if not movimientos:
+    if not movimientos_colombia:
 
         mensaje += (
             "⠀⠀⠀⏤⏤⏤⏤⏤\n\n"
@@ -4718,7 +4740,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ganados = 0
         gastados = 0
 
-        for cantidad, tipo, fecha in movimientos:
+        for cantidad, tipo, fecha in movimientos_colombia:
 
             signo = "+" if cantidad > 0 else ""
 
@@ -4750,7 +4772,7 @@ async def bankooins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivo_pdf = generar_pdf_bankooins(
         username,
         saldo_actual,
-        movimientos
+        movimientos_colombia
     )
 
     with open(archivo_pdf, "rb") as archivo:
