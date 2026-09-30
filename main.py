@@ -2196,14 +2196,22 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Crear el evento del koala
+    # Crear / actualizar tabla del evento
     cur.execute("""
         CREATE TABLE IF NOT EXISTS koala_evento (
             id SERIAL PRIMARY KEY,
             premio INTEGER NOT NULL,
             activo BOOLEAN DEFAULT TRUE,
-            ganador_id BIGINT
+            ganador_id BIGINT,
+            ganador2_id BIGINT
         )
+    """)
+    conn.commit()
+
+    # Por si la tabla ya existía de antes y no tenía ganador2_id
+    cur.execute("""
+        ALTER TABLE koala_evento
+        ADD COLUMN IF NOT EXISTS ganador2_id BIGINT
     """)
     conn.commit()
 
@@ -2221,28 +2229,29 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # Crear nuevo evento
     cur.execute("""
-        INSERT INTO koala_evento (premio, activo)
-        VALUES (%s, TRUE)
+        INSERT INTO koala_evento (
+            premio,
+            activo,
+            ganador_id,
+            ganador2_id
+        )
+        VALUES (%s, TRUE, NULL, NULL)
+        RETURNING id
     """, (premio,))
-
-    conn.commit()
-
-    cur.execute("""
-        SELECT id
-        FROM koala_evento
-        WHERE activo = TRUE
-        ORDER BY id DESC
-        LIMIT 1
-    """)
 
     evento_id = cur.fetchone()[0]
 
+    conn.commit()
+
     keyboard = [
-        [InlineKeyboardButton(
-            "🐨 ‹𝟹",
-            callback_data=f"koala:{evento_id}"
-        )]
+        [
+            InlineKeyboardButton(
+                "🐨 ‹𝟹",
+                callback_data=f"koala:{evento_id}"
+            )
+        ]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -2261,7 +2270,7 @@ async def koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"🐨 ¡Koala enviado al grupo!\n"
-        f"Premio secreto: {premio} kooins."
+        f"Premio secreto: {premio} kooins para cada ganador."
     )
 
 async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2276,27 +2285,108 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     evento_id = int(query.data.split(":")[1])
 
-    # Intentamos cerrar el evento.
-    # Solo el primero que lo haga con éxito será el ganador.
+    # -------------------------------------------------
+    # INTENTAR REGISTRAR AL GANADOR
+    # -------------------------------------------------
+    #
+    # Si no hay ganador:
+    #   → se convierte en ganador 1
+    #
+    # Si ya hay ganador 1:
+    #   → se convierte en ganador 2
+    #   → se cierra el evento
+    #
+    # Si intenta entrar alguien que ya ganó:
+    #   → no se permite
+    #
+
     cur.execute("""
         UPDATE koala_evento
-        SET activo = FALSE,
-            ganador_id = %s
+        SET
+            ganador_id = CASE
+                WHEN ganador_id IS NULL
+                THEN %s
+                ELSE ganador_id
+            END,
+
+            ganador2_id = CASE
+                WHEN ganador_id IS NOT NULL
+                     AND ganador_id != %s
+                     AND ganador2_id IS NULL
+                THEN %s
+                ELSE ganador2_id
+            END,
+
+            activo = CASE
+                WHEN ganador_id IS NOT NULL
+                     AND ganador_id != %s
+                     AND ganador2_id IS NULL
+                THEN FALSE
+                ELSE activo
+            END
+
         WHERE id = %s
           AND activo = TRUE
-        RETURNING premio
-    """, (user_id, evento_id))
+          AND (
+              ganador_id IS NULL
+              OR (
+                  ganador_id IS NOT NULL
+                  AND ganador_id != %s
+                  AND ganador2_id IS NULL
+              )
+          )
+
+        RETURNING premio, ganador_id, ganador2_id, activo
+    """, (
+        user_id,
+        user_id,
+        user_id,
+        user_id,
+        evento_id,
+        user_id
+    ))
 
     row = cur.fetchone()
 
+    # No pudo ganar
     if not row:
+
+        # Comprobar qué pasó
+        cur.execute("""
+            SELECT ganador_id, ganador2_id, activo
+            FROM koala_evento
+            WHERE id = %s
+        """, (evento_id,))
+
+        estado = cur.fetchone()
+
+        if not estado:
+            await query.answer(
+                "este koala ya no existe.. 🐨",
+                show_alert=True
+            )
+            return
+
+        ganador1, ganador2, activo = estado
+
+        if ganador1 == user_id or ganador2 == user_id:
+            await query.answer(
+                "૮ ˶ᵔ ᵕ ᵔ˶ ა ¡ya atrapaste este koala!",
+                show_alert=True
+            )
+            return
+
         await query.answer(
-            "(｡ᵕ ◞ _◟) ¡muy tarde! alguien ya atrapó el koala.",
+            "(｡ᵕ ◞ _◟) ¡muy tarde! ya lo atraparon dos personas.",
             show_alert=True
         )
         return
 
-    premio = row[0]
+    premio, ganador1_id, ganador2_id, activo = row
+
+    # -------------------------------------------------
+    # DATOS DEL USUARIO
+    # -------------------------------------------------
 
     username = (
         f"@{query.from_user.username}"
@@ -2304,7 +2394,10 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else query.from_user.first_name
     )
 
-    # Sumar los kooins al ranking
+    # -------------------------------------------------
+    # DAR EL PREMIO
+    # -------------------------------------------------
+
     cur.execute("""
         INSERT INTO puntos (user_id, username, score)
         VALUES (%s, %s, %s)
@@ -2313,7 +2406,7 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
             username = EXCLUDED.username
     """, (user_id, username, premio))
 
-    # Registrar movimiento en bankooins
+    # Registrar movimiento
     cur.execute("""
         INSERT INTO movimientos_kooins
         (user_id, cantidad, tipo)
@@ -2322,13 +2415,70 @@ async def atrapar_koala(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.commit()
 
-    # Cambiar el texto de la imagen por el resultado
-    await query.edit_message_caption(
-        caption=(
-            f"๋࣭ ⭑ ¡{username} lo ha atrapado!\n"
-            f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)"
+    # -------------------------------------------------
+    # PRIMER GANADOR
+    # -------------------------------------------------
+
+    if activo:
+
+        await query.answer(
+            "🐨 ¡LO ATRAPASTE! eres el primer ganador.",
+            show_alert=True
         )
-    )
+
+        await query.edit_message_caption(
+            caption=(
+                f"๋࣭ ⭑ ¡{username} lo ha atrapado!\n"
+                f"¡Ha ganado {premio} kooins! (๑>؂•̀๑)\n\n"
+                f"🐨 ¡Todavía falta un ganador!\n"
+                f"¡Atrápalo antes que los demás!"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🐨 ‹𝟹",
+                        callback_data=f"koala:{evento_id}"
+                    )
+                ]
+            ])
+        )
+
+    # -------------------------------------------------
+    # SEGUNDO GANADOR
+    # -------------------------------------------------
+
+    else:
+
+        # Buscar username del primer ganador
+        cur.execute("""
+            SELECT username
+            FROM puntos
+            WHERE user_id = %s
+        """, (ganador1_id,))
+
+        resultado_usuario = cur.fetchone()
+
+        if resultado_usuario:
+            username1 = resultado_usuario[0]
+        else:
+            username1 = str(ganador1_id)
+
+        await query.answer(
+            "🐨 ¡LO ATRAPASTE! eres el segundo ganador.",
+            show_alert=True
+        )
+
+        await query.edit_message_caption(
+            caption=(
+                f"๋࣭ ⭑ ¡KOALA ATRAPADO! 🐨\n\n"
+                f"① {username1}\n"
+                f"└─ +{premio} kooins\n\n"
+                f"② {username}\n"
+                f"└─ +{premio} kooins\n\n"
+                f"¡ambos atraparon al koala! ₍ᐢ. .ᐢ₎"
+            ),
+            reply_markup=None
+        )
 
 # --- CANCELAR KOALA (solo admin) ---
 
@@ -3296,12 +3446,12 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "triple"
         ],
         weights=[
-            20,  # perder todo
-            15,  # perder mitad
-            20,  # recuperar
-            20,  # ganar mitad
-            15,  # duplicar
-            10   # triple
+            10,  # perder todo
+            10,  # perder mitad
+            15,  # recuperar
+            25,  # ganar mitad
+            25,  # duplicar
+            15   # triple
         ],
         k=1
     )[0]
