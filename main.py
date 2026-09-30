@@ -3446,12 +3446,12 @@ async def resultado_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "triple"
         ],
     weights=[
-            1,  # perder todo
-            1,  # perder mitad
-            10,  # recuperar
+            20,  # perder todo
+            15,  # perder mitad
+            20,  # recuperar
             20,  # ganar mitad
-            30,  # duplicar
-            28   # triple
+            15,  # duplicar
+            10   # triple
         ],
         k=1
     )[0]
